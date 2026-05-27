@@ -20,7 +20,7 @@ targets:
         NSBonjourServices:
           - "_13c57208059cec59d12fa6e8._tcp"
         CFBundleIdentifier: com.example.macdock
-        CFBundleDisplayName: "Mac Dock"
+        CFBundleDisplayName: "Mac Dock Control"
         CFBundleName: macOS_App
         LSMinimumSystemVersion: "12.0"
     settings:
