@@ -12,15 +12,38 @@ struct MacAppInfo: Codable, Identifiable, Hashable {
 }
 
 struct AppPayload: Codable {
-    let type: String // "APP_LIST" or "OPEN_APP"
+    let type: String // "APP_LIST", "OPEN_APP", "PAIRING_REQUEST", "PAIRING_RESPONSE", "VERIFY_PAIRING"
     let apps: [MacAppInfo]?
     let bundleId: String?
+    let uuid: String?
+    let token: String?
 }
 
 class NearbyService: NSObject, ObservableObject, ConnectionManagerDelegate, AdvertiserDelegate {
     @Published var connectionStatus = "Disconnected"
     @Published var verificationCode: String? = nil
     @Published var connectedEndpoint: EndpointID? = nil
+    
+    private var myUUID: String {
+        if let uuid = UserDefaults.standard.string(forKey: "macdock_my_uuid") {
+            return uuid
+        }
+        let uuid = UUID().uuidString
+        UserDefaults.standard.set(uuid, forKey: "macdock_my_uuid")
+        return uuid
+    }
+    
+    private var pairedDevices: [String: String] {
+        get {
+            UserDefaults.standard.dictionary(forKey: "macdock_paired_devices") as? [String: String] ?? [:]
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "macdock_paired_devices")
+        }
+    }
+    
+    private var pendingConnections: [EndpointID: String] = [:]
+    private var authorizedEndpoints: Set<EndpointID> = []
     
     private var connectionManager: ConnectionManager!
     private var advertiser: Advertiser!
@@ -41,7 +64,8 @@ class NearbyService: NSObject, ObservableObject, ConnectionManagerDelegate, Adve
         DispatchQueue.main.async {
             self.connectionStatus = "Advertising..."
         }
-        advertiser.startAdvertising(using: HostName().data(using: .utf8)!)
+        let nameWithUuid = "\(HostName())|\(myUUID)"
+        advertiser.startAdvertising(using: nameWithUuid.data(using: .utf8)!)
     }
     
     func stop() {
@@ -97,7 +121,7 @@ class NearbyService: NSObject, ObservableObject, ConnectionManagerDelegate, Adve
     
     func sendAppList(to endpointId: EndpointID) {
         let appList = getInstalledApps()
-        let payload = AppPayload(type: "APP_LIST", apps: appList, bundleId: nil)
+        let payload = AppPayload(type: "APP_LIST", apps: appList, bundleId: nil, uuid: nil, token: nil)
         if let data = try? JSONEncoder().encode(payload) {
             _ = connectionManager.send(data, to: [endpointId])
         }
@@ -127,17 +151,29 @@ class NearbyService: NSObject, ObservableObject, ConnectionManagerDelegate, Adve
     
     // MARK: - AdvertiserDelegate
     func advertiser(_ advertiser: Advertiser, didReceiveConnectionRequestFrom endpointID: EndpointID, with context: Data, connectionRequestHandler: @escaping (Bool) -> Void) {
-        // Automatically accept the request, verification happens in ConnectionManagerDelegate
+        if let remoteName = String(data: context, encoding: .utf8) {
+            pendingConnections[endpointID] = remoteName
+        }
         connectionRequestHandler(true)
     }
     
     // MARK: - ConnectionManagerDelegate
     func connectionManager(_ connectionManager: ConnectionManager, didReceive verificationCode: String, from endpointID: EndpointID, verificationHandler: @escaping (Bool) -> Void) {
-        DispatchQueue.main.async {
-            self.verificationCode = verificationCode
-            self.connectionStatus = "Verifying..."
+        let remoteName = pendingConnections[endpointID] ?? ""
+        let parts = remoteName.split(separator: "|")
+        let remoteUuid = parts.count > 1 ? String(parts[1]) : nil
+        
+        if let uuid = remoteUuid, pairedDevices[uuid] != nil {
+            // Already paired, auto-accept
+            verificationHandler(true)
+        } else {
+            // New pairing: show verification code
+            DispatchQueue.main.async {
+                self.verificationCode = verificationCode
+                self.connectionStatus = "Verifying..."
+            }
+            self.tempVerificationHandler = verificationHandler
         }
-        self.tempVerificationHandler = verificationHandler
     }
     
     func connectionManager(_ connectionManager: ConnectionManager, didChangeTo state: ConnectionState, for endpointID: EndpointID) {
@@ -146,13 +182,14 @@ class NearbyService: NSObject, ObservableObject, ConnectionManagerDelegate, Adve
             case .connecting:
                 self.connectionStatus = "Connecting..."
             case .connected:
-                self.connectionStatus = "Connected to \(endpointID)"
+                self.connectionStatus = "Verifying..."
                 self.connectedEndpoint = endpointID
                 self.advertiser.stopAdvertising()
-                self.sendAppList(to: endpointID)
             case .disconnected:
                 if self.connectedEndpoint == endpointID {
                     self.connectedEndpoint = nil
+                    self.authorizedEndpoints.remove(endpointID)
+                    self.pendingConnections.removeValue(forKey: endpointID)
                     self.start()
                 }
             case .rejected:
@@ -165,10 +202,45 @@ class NearbyService: NSObject, ObservableObject, ConnectionManagerDelegate, Adve
     
     func connectionManager(_ connectionManager: ConnectionManager, didReceive data: Data, withID payloadID: PayloadID, from endpointID: EndpointID) {
         if let payload = try? JSONDecoder().decode(AppPayload.self, from: data) {
-            if payload.type == "OPEN_APP", let bundleId = payload.bundleId {
-                DispatchQueue.main.async {
-                    self.launchApp(bundleId: bundleId)
+            switch payload.type {
+            case "PAIRING_REQUEST":
+                if let clientUuid = payload.uuid {
+                    let token = UUID().uuidString
+                    var paired = pairedDevices
+                    paired[clientUuid] = token
+                    pairedDevices = paired
+                    
+                    let response = AppPayload(type: "PAIRING_RESPONSE", apps: nil, bundleId: nil, uuid: myUUID, token: token)
+                    if let responseData = try? JSONEncoder().encode(response) {
+                        _ = connectionManager.send(responseData, to: [endpointID])
+                    }
+                    authorizedEndpoints.insert(endpointID)
+                    DispatchQueue.main.async {
+                        self.connectionStatus = "Connected"
+                    }
+                    self.sendAppList(to: endpointID)
                 }
+            case "VERIFY_PAIRING":
+                if let clientUuid = payload.uuid, let clientToken = payload.token {
+                    if pairedDevices[clientUuid] == clientToken {
+                        authorizedEndpoints.insert(endpointID)
+                        DispatchQueue.main.async {
+                            self.connectionStatus = "Connected"
+                        }
+                        self.sendAppList(to: endpointID)
+                    } else {
+                        print("Verification failed for \(clientUuid)")
+                        connectionManager.disconnect(from: endpointID)
+                    }
+                }
+            case "OPEN_APP":
+                if authorizedEndpoints.contains(endpointID), let bundleId = payload.bundleId {
+                    DispatchQueue.main.async {
+                        self.launchApp(bundleId: bundleId)
+                    }
+                }
+            default:
+                break
             }
         }
     }
