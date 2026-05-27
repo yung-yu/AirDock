@@ -164,7 +164,6 @@ fun NearbyControllerScreen(modifier: Modifier = Modifier) {
     var verificationHandler by remember { mutableStateOf<((Boolean) -> Unit)?>(null) }
     var macApps by remember { mutableStateOf<List<MacAppInfo>>(emptyList()) }
     var searchQuery by remember { mutableStateOf("") }
-    var ipInput by remember { mutableStateOf("") }
 
     val configuration = LocalConfiguration.current
     val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
@@ -422,70 +421,6 @@ fun NearbyControllerScreen(modifier: Modifier = Modifier) {
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(horizontal = 24.dp)
                 )
-                 
-                 Spacer(modifier = Modifier.height(32.dp))
-                 
-                 // Manual IP connection block
-                 Card(
-                     colors = CardDefaults.cardColors(containerColor = DockBgColor),
-                     shape = RoundedCornerShape(16.dp),
-                     modifier = Modifier
-                         .fillMaxWidth()
-                         .padding(horizontal = 24.dp)
-                         .border(0.5.dp, DockBorderColor, RoundedCornerShape(16.dp))
-                 ) {
-                     Column(
-                         modifier = Modifier
-                             .padding(16.dp)
-                             .fillMaxWidth(),
-                         horizontalAlignment = Alignment.CenterHorizontally
-                     ) {
-                         Text(
-                             text = "Connect via IP",
-                             color = Color.White,
-                             fontSize = 16.sp,
-                             fontWeight = FontWeight.Bold
-                         )
-                         Spacer(modifier = Modifier.height(12.dp))
-                         OutlinedTextField(
-                             value = ipInput,
-                             onValueChange = { ipInput = it },
-                             placeholder = { Text("e.g. 192.168.1.100", color = Color.Gray) },
-                             singleLine = true,
-                             colors = OutlinedTextFieldDefaults.colors(
-                                 focusedTextColor = Color.White,
-                                 unfocusedTextColor = Color.White,
-                                 focusedBorderColor = NeonCyan,
-                                 unfocusedBorderColor = DockBorderColor,
-                                 focusedContainerColor = Color.Black.copy(alpha = 0.2f),
-                                 unfocusedContainerColor = Color.Black.copy(alpha = 0.2f)
-                             ),
-                             shape = RoundedCornerShape(10.dp),
-                             modifier = Modifier.fillMaxWidth()
-                         )
-                         Spacer(modifier = Modifier.height(16.dp))
-                         Button(
-                             onClick = {
-                                 if (ipInput.isNotBlank()) {
-                                     nearbyService.connectToIp(ipInput.trim())
-                                 }
-                             },
-                             enabled = ipInput.isNotBlank() && connectionStatus != "Connecting to IP...",
-                             colors = ButtonDefaults.buttonColors(
-                                 containerColor = NeonIndigo,
-                                 disabledContainerColor = NeonIndigo.copy(alpha = 0.5f)
-                             ),
-                             shape = RoundedCornerShape(10.dp),
-                             modifier = Modifier.fillMaxWidth().height(44.dp)
-                         ) {
-                             Text(
-                                 text = if (connectionStatus == "Connecting to IP...") "Connecting..." else "Connect",
-                                 color = Color.White,
-                                 fontWeight = FontWeight.Bold
-                             )
-                         }
-                     }
-                 }
             }
         }
     }

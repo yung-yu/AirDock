@@ -23,7 +23,6 @@ class NearbyService(
     private val connectionsClient = Nearby.getConnectionsClient(context)
     private val serviceId = "com.antigravity.macdock"
     private var connectedEndpointId: String? = null
-    private var tcpClient: TcpClient? = null
 
     private val payloadCallback = object : PayloadCallback() {
         override fun onPayloadReceived(endpointId: String, payload: Payload) {
@@ -86,9 +85,6 @@ class NearbyService(
     }
 
     fun startDiscovery() {
-        tcpClient?.disconnect()
-        tcpClient = null
-        
         onStatusChanged("Scanning...")
         val discoveryOptions = DiscoveryOptions.Builder()
             .setStrategy(Strategy.P2P_POINT_TO_POINT)
@@ -123,20 +119,7 @@ class NearbyService(
         connectionsClient.stopDiscovery()
     }
 
-    fun connectToIp(ipAddress: String) {
-        disconnect()
-        tcpClient = TcpClient(
-            onStatusChanged = { status -> onStatusChanged(status) },
-            onAppListReceived = { list -> onAppListReceived(list) }
-        ).apply {
-            connect(ipAddress)
-        }
-    }
-
     fun disconnect() {
-        tcpClient?.disconnect()
-        tcpClient = null
-        
         connectedEndpointId?.let {
             connectionsClient.disconnectFromEndpoint(it)
             connectedEndpointId = null
@@ -151,117 +134,8 @@ class NearbyService(
         }
         val jsonStr = json.toString()
 
-        tcpClient?.let { client ->
-            if (client.isConnected()) {
-                client.sendPayload(jsonStr)
-                return
-            }
-        }
-
         val endpointId = connectedEndpointId ?: return
         val bytes = jsonStr.toByteArray(Charsets.UTF_8)
         connectionsClient.sendPayload(endpointId, Payload.fromBytes(bytes))
-    }
-}
-
-// MARK: - TCP Socket Client
-class TcpClient(
-    private val onStatusChanged: (String) -> Unit,
-    private val onAppListReceived: (List<MacAppInfo>) -> Unit
-) {
-    private var socket: Socket? = null
-    private var writer: DataOutputStream? = null
-    private var reader: DataInputStream? = null
-    private var isRunning = false
-    private var readThread: Thread? = null
-    private val mainHandler = Handler(Looper.getMainLooper())
-
-    fun connect(ipAddress: String, port: Int = 12345) {
-        disconnect()
-        isRunning = true
-        mainHandler.post { onStatusChanged("Connecting to IP...") }
-        
-        readThread = Thread {
-            try {
-                val sock = Socket()
-                socket = sock
-                sock.connect(InetSocketAddress(ipAddress, port), 5000) // 5s timeout
-                
-                writer = DataOutputStream(sock.getOutputStream())
-                reader = DataInputStream(sock.getInputStream())
-                
-                mainHandler.post { onStatusChanged("Connected") }
-                
-                while (isRunning) {
-                    val length = reader?.readInt() ?: break
-                    if (length <= 0 || length > 10 * 1024 * 1024) break
-                    
-                    val buffer = ByteArray(length)
-                    reader?.readFully(buffer)
-                    
-                    val jsonStr = String(buffer, Charsets.UTF_8)
-                    val json = JSONObject(jsonStr)
-                    if (json.optString("type") == "APP_LIST") {
-                        val appsArray = json.getJSONArray("apps")
-                        val apps = mutableListOf<MacAppInfo>()
-                        for (i in 0 until appsArray.length()) {
-                            val item = appsArray.getJSONObject(i)
-                            apps.add(
-                                MacAppInfo(
-                                    item.getString("name"),
-                                    item.getString("bundleId")
-                                )
-                            )
-                        }
-                        mainHandler.post { onAppListReceived(apps) }
-                    }
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                if (isRunning) {
-                    mainHandler.post { onStatusChanged("IP Connection Failed") }
-                }
-            } finally {
-                // Do not loop disconnect if it's already triggered manually
-                if (isRunning) {
-                    disconnect()
-                }
-            }
-        }
-        readThread?.start()
-    }
-
-    fun disconnect() {
-        val wasRunning = isRunning
-        isRunning = false
-        if (wasRunning) {
-            mainHandler.post { onStatusChanged("Disconnected") }
-        }
-        try {
-            socket?.close()
-        } catch (e: Exception) {}
-        socket = null
-        writer = null
-        reader = null
-        readThread = null
-    }
-
-    fun sendPayload(jsonStr: String) {
-        val bytes = jsonStr.toByteArray(Charsets.UTF_8)
-        Thread {
-            try {
-                writer?.let { out ->
-                    out.writeInt(bytes.size)
-                    out.write(bytes)
-                    out.flush()
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }.start()
-    }
-
-    fun isConnected(): Boolean {
-        return socket?.isConnected == true && !socket!!.isClosed
     }
 }

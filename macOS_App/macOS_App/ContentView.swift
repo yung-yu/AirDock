@@ -40,18 +40,6 @@ struct ContentView: View {
                     .padding(.horizontal, 12)
                     .background(Color.white.opacity(0.05))
                     .cornerRadius(8)
-                    
-                    if let ip = service.localIP {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Manual Connection IP")
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(.gray)
-                            Text("\(ip):12345")
-                                .font(.system(size: 13, weight: .semibold, design: .monospaced))
-                                .foregroundColor(Color(red: 0.2, green: 0.8, blue: 0.9))
-                        }
-                        .padding(.top, 4)
-                    }
                 }
                 
                 // Action Buttons
