@@ -1,0 +1,37 @@
+name: macOS_App
+options:
+  bundleId: com.example.macdock
+  deploymentTarget:
+    macOS: "12.0"
+targets:
+  macOS_App:
+    type: application
+    platform: macOS
+    sources:
+      - macOS_App
+    dependencies:
+      - package: NearbyConnections
+        product: NearbyConnections
+    info:
+      path: macOS_App/Info.plist
+      properties:
+        NSBluetoothAlwaysUsageDescription: "This app uses Bluetooth to discover and connect to your Android device."
+        NSLocalNetworkUsageDescription: "This app uses the local network to establish offline peer-to-peer connection."
+        NSBonjourServices:
+          - "_13c57208059cec59d12fa6e8._tcp"
+        CFBundleIdentifier: com.example.macdock
+        CFBundleDisplayName: "Mac Dock"
+        CFBundleName: macOS_App
+        LSMinimumSystemVersion: "12.0"
+    settings:
+      CODE_SIGN_IDENTITY: "-"
+      CODE_SIGNING_REQUIRED: "NO"
+      CODE_SIGNING_ALLOWED: "NO"
+      PRODUCT_BUNDLE_IDENTIFIER: com.example.macdock
+      MACOSX_DEPLOYMENT_TARGET: "12.0"
+      ENABLE_APP_SANDBOX: "NO"
+
+packages:
+  NearbyConnections:
+    url: https://github.com/google/nearby
+    branch: main

@@ -1,0 +1,29 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# Xcode / macOS build files
+build/
+DerivedData/
+*.moved-aside
+*.xcuserstate
+xcuserdata/
+macOS_App/DerivedData/
+macOS_App/build/
+
+# Android build and Gradle files
+.gradle/
+.kotlin/
+build/
+app/build/
+local.properties
+.idea/
+*.iml
+.cxx/
+capture/
+*.apk
+*.ap_
+*.dex
+
+# Local configuration
+local.properties
