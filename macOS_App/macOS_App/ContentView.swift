@@ -118,7 +118,7 @@ struct ContentView: View {
                 Spacer()
                 
                 // Footer
-                Text("Version 1.0.0 • Offline Local P2P")
+                Text("Version 1.0.0")
                     .font(.caption)
                     .foregroundColor(.gray)
             }
