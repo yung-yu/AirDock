@@ -7,14 +7,17 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -154,7 +157,7 @@ fun PermissionRequestScreen(onRequestPermissions: () -> Unit) {
     }
 }
 
-@OptIn(ExperimentalAnimationApi::class)
+@OptIn(ExperimentalAnimationApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun NearbyControllerScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
@@ -164,6 +167,29 @@ fun NearbyControllerScreen(modifier: Modifier = Modifier) {
     var verificationHandler by remember { mutableStateOf<((Boolean) -> Unit)?>(null) }
     var macApps by remember { mutableStateOf<List<MacAppInfo>>(emptyList()) }
     var searchQuery by remember { mutableStateOf("") }
+
+    val sharedPrefs = remember { context.getSharedPreferences("macdock_prefs", Context.MODE_PRIVATE) }
+    var selectedApps by remember {
+        mutableStateOf(sharedPrefs.getStringSet("macdock_selected_apps", emptySet()) ?: emptySet())
+    }
+    
+    fun updateSelectedApps(newSet: Set<String>) {
+        selectedApps = newSet
+        sharedPrefs.edit().putStringSet("macdock_selected_apps", newSet).apply()
+    }
+
+    var showManageDialog by remember { mutableStateOf(false) }
+    var manageSearchQuery by remember { mutableStateOf("") }
+    
+    val filteredManageApps = remember(macApps, manageSearchQuery) {
+        if (manageSearchQuery.isBlank()) {
+            macApps
+        } else {
+            macApps.filter { it.name.contains(manageSearchQuery, ignoreCase = true) }
+        }
+    }
+
+    var appToRemove by remember { mutableStateOf<MacAppInfo?>(null) }
 
     val configuration = LocalConfiguration.current
     val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
@@ -188,249 +214,427 @@ fun NearbyControllerScreen(modifier: Modifier = Modifier) {
         }
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        // App Title / Header (Only show full header in Portrait or compress in Landscape)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = if (connectionStatus == "Connected") Arrangement.End else Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
         ) {
-            if (connectionStatus != "Connected") {
-                Column {
-                    Text(
-                        text = "Mac Dock",
-                        color = Color.White,
-                        fontSize = if (isPortrait) 28.sp else 22.sp,
-                        fontWeight = FontWeight.ExtraBold
-                    )
-                    Text(
-                        text = "Remote Controller",
-                        color = NeonCyan,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                // Connection Status Tiny Badge
+            // App Title / Header (Only show full header in Portrait or compress in Landscape)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = if (connectionStatus == "Connected") Arrangement.End else Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 if (connectionStatus != "Connected") {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(DockBgColor)
-                            .border(0.5.dp, DockBorderColor, RoundedCornerShape(8.dp))
-                            .padding(horizontal = 10.dp, vertical = 6.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(8.dp)
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .background(
-                                        when (connectionStatus) {
-                                            "Connected" -> AccentGreen
-                                            "Scanning...", "Connecting to IP..." -> NeonCyan
-                                            "Verifying..." -> NeonIndigo
-                                            else -> WarningRed
-                                        }
-                                    )
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = if (connectionStatus.length > 12) connectionStatus.take(10) + "..." else connectionStatus,
-                                color = Color.White,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
+                    Column {
+                        Text(
+                            text = "Mac Dock",
+                            color = Color.White,
+                            fontSize = if (isPortrait) 28.sp else 22.sp,
+                            fontWeight = FontWeight.ExtraBold
+                        )
+                        Text(
+                            text = "Remote Controller",
+                            color = NeonCyan,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        )
                     }
                 }
-                
-                IconButton(
-                    onClick = {
-                        if (connectionStatus == "Connected") {
-                            nearbyService.disconnect()
-                        } else {
-                            nearbyService.startDiscovery()
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Connection Status Tiny Badge
+                    if (connectionStatus != "Connected") {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(DockBgColor)
+                                .border(0.5.dp, DockBorderColor, RoundedCornerShape(8.dp))
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(
+                                            when (connectionStatus) {
+                                                "Connected" -> AccentGreen
+                                                "Scanning...", "Connecting to IP..." -> NeonCyan
+                                                "Verifying..." -> NeonIndigo
+                                                else -> WarningRed
+                                            }
+                                        )
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = if (connectionStatus.length > 12) connectionStatus.take(10) + "..." else connectionStatus,
+                                    color = Color.White,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        }
+                    }
+                    
+                    IconButton(
+                        onClick = {
+                            if (connectionStatus == "Connected") {
+                                nearbyService.disconnect()
+                            } else {
+                                nearbyService.startDiscovery()
+                            }
+                        },
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (connectionStatus == "Connected") WarningRed else NeonIndigo)
+                    ) {
+                        Icon(
+                            imageVector = if (connectionStatus == "Connected") Icons.Default.Close else Icons.Default.Refresh,
+                            contentDescription = "Connection Action",
+                            tint = Color.White
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Verification Dialog
+            if (showVerificationDialog && verificationPin != null) {
+                AlertDialog(
+                    onDismissRequest = {
+                        verificationHandler?.invoke(false)
+                        showVerificationDialog = false
+                    },
+                    containerColor = SecondaryDark,
+                    title = {
+                        Text("Verify Connection", color = Color.White, fontWeight = FontWeight.Bold)
+                    },
+                    text = {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                "Confirm that the PIN on your Mac matches:",
+                                color = Color.LightGray,
+                                fontSize = 14.sp
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = verificationPin ?: "",
+                                color = NeonCyan,
+                                fontSize = 36.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 4.sp
+                            )
                         }
                     },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                verificationHandler?.invoke(true)
+                                showVerificationDialog = false
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = AccentGreen)
+                        ) {
+                            Text("Confirm", color = Color.White)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = {
+                                verificationHandler?.invoke(false)
+                                showVerificationDialog = false
+                            }
+                        ) {
+                            Text("Reject", color = WarningRed)
+                        }
+                    }
+                )
+            }
+
+            // Search and App List
+            AnimatedVisibility(
+                visible = connectionStatus == "Connected",
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically(),
+                modifier = Modifier.weight(1f)
+            ) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    val filteredApps = remember(macApps, selectedApps) {
+                        macApps.filter { it.bundleId in selectedApps }
+                    }
+
+                    if (filteredApps.isEmpty()) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = if (macApps.isEmpty()) {
+                                    "No apps found on Mac"
+                                } else {
+                                    "Your Dock is empty. Tap '+' to add apps from your Mac."
+                                },
+                                color = Color.LightGray,
+                                fontSize = 16.sp,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(24.dp)
+                            )
+                        }
+                    } else {
+                        if (isPortrait) {
+                            // Portrait: 2 columns vertical scroll
+                            LazyVerticalGrid(
+                                columns = GridCells.Fixed(2),
+                                verticalArrangement = Arrangement.spacedBy(12.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                items(filteredApps) { app ->
+                                    MacGridAppItem(
+                                        app = app,
+                                        isLandscape = false,
+                                        onClick = { nearbyService.openApp(app.bundleId) },
+                                        onLongClick = { appToRemove = app }
+                                    )
+                                }
+                            }
+                        } else {
+                            // Landscape: 2 rows horizontal scroll (Dock layout)
+                            LazyHorizontalGrid(
+                                rows = GridCells.Fixed(2),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp),
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                items(filteredApps) { app ->
+                                    MacGridAppItem(
+                                        app = app,
+                                        isLandscape = true,
+                                        onClick = { nearbyService.openApp(app.bundleId) },
+                                        onLongClick = { appToRemove = app }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Default screen when disconnected/scanning
+            AnimatedVisibility(
+                visible = connectionStatus != "Connected",
+                enter = fadeIn(),
+                exit = fadeOut(),
+                modifier = Modifier.weight(1f)
+            ) {
+                Column(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(if (connectionStatus == "Connected") WarningRed else NeonIndigo)
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(bottom = 40.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Icon(
-                        imageVector = if (connectionStatus == "Connected") Icons.Default.Close else Icons.Default.Refresh,
-                        contentDescription = "Connection Action",
-                        tint = Color.White
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = "Scan Logo",
+                        tint = NeonIndigo,
+                        modifier = Modifier.size(90.dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Control Your Mac Remotely",
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Tap Scan on the top right to discover your Mac on the local network.",
+                        color = Color.LightGray,
+                        fontSize = 14.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 24.dp)
                     )
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Verification Dialog
-        if (showVerificationDialog && verificationPin != null) {
-            AlertDialog(
-                onDismissRequest = {
-                    verificationHandler?.invoke(false)
-                    showVerificationDialog = false
+        // FAB for managing apps
+        if (connectionStatus == "Connected") {
+            FloatingActionButton(
+                onClick = {
+                    manageSearchQuery = ""
+                    showManageDialog = true
                 },
-                containerColor = SecondaryDark,
-                title = {
-                    Text("Verify Connection", color = Color.White, fontWeight = FontWeight.Bold)
-                },
-                text = {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            "Confirm that the PIN on your Mac matches:",
-                            color = Color.LightGray,
-                            fontSize = 14.sp
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = verificationPin ?: "",
-                            color = NeonCyan,
-                            fontSize = 36.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 4.sp
-                        )
-                    }
-                },
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            verificationHandler?.invoke(true)
-                            showVerificationDialog = false
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = AccentGreen)
-                    ) {
-                        Text("Confirm", color = Color.White)
-                    }
-                },
-                dismissButton = {
-                    TextButton(
-                        onClick = {
-                            verificationHandler?.invoke(false)
-                            showVerificationDialog = false
-                        }
-                    ) {
-                        Text("Reject", color = WarningRed)
-                    }
-                }
-            )
-        }
-
-        // Search and App List
-        AnimatedVisibility(
-            visible = connectionStatus == "Connected",
-            enter = fadeIn() + expandVertically(),
-            exit = fadeOut() + shrinkVertically(),
-            modifier = Modifier.weight(1f)
-        ) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                // App Grid Layout
-                val filteredApps = macApps
-
-                if (filteredApps.isEmpty()) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = if (macApps.isEmpty()) "No apps found on Mac" else "No matching apps",
-                            color = Color.LightGray,
-                            fontSize = 16.sp
-                        )
-                    }
-                } else {
-                    if (isPortrait) {
-                        // Portrait: 2 columns vertical scroll
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(2),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            items(filteredApps) { app ->
-                                MacGridAppItem(
-                                    app = app,
-                                    isLandscape = false,
-                                    onClick = { nearbyService.openApp(app.bundleId) }
-                                )
-                            }
-                        }
-                    } else {
-                        // Landscape: 2 rows horizontal scroll (Dock layout)
-                        LazyHorizontalGrid(
-                            rows = GridCells.Fixed(2),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            items(filteredApps) { app ->
-                                MacGridAppItem(
-                                    app = app,
-                                    isLandscape = true,
-                                    onClick = { nearbyService.openApp(app.bundleId) }
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Default screen when disconnected/scanning
-        AnimatedVisibility(
-            visible = connectionStatus != "Connected",
-            enter = fadeIn(),
-            exit = fadeOut(),
-            modifier = Modifier.weight(1f)
-        ) {
-            Column(
+                containerColor = NeonIndigo,
+                contentColor = Color.White,
+                shape = RoundedCornerShape(16.dp),
                 modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(bottom = 40.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .align(Alignment.BottomEnd)
+                    .padding(24.dp)
+                    .shadow(12.dp, RoundedCornerShape(16.dp))
             ) {
                 Icon(
-                    imageVector = Icons.Default.PlayArrow,
-                    contentDescription = "Scan Logo",
-                    tint = NeonIndigo,
-                    modifier = Modifier.size(90.dp)
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "Control Your Mac Remotely",
-                    color = Color.White,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Tap Scan on the top right to discover your Mac on the local network.",
-                    color = Color.LightGray,
-                    fontSize = 14.sp,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(horizontal = 24.dp)
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Manage Apps"
                 )
             }
         }
     }
+
+    // App Removal Dialog
+    if (appToRemove != null) {
+        AlertDialog(
+            onDismissRequest = { appToRemove = null },
+            containerColor = SecondaryDark,
+            title = {
+                Text("Remove App", color = Color.White, fontWeight = FontWeight.Bold)
+            },
+            text = {
+                Text("Remove ${appToRemove?.name} from your display list?", color = Color.LightGray)
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        appToRemove?.let { app ->
+                            updateSelectedApps(selectedApps - app.bundleId)
+                        }
+                        appToRemove = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = WarningRed)
+                ) {
+                    Text("Remove", color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { appToRemove = null }) {
+                    Text("Cancel", color = Color.LightGray)
+                }
+            }
+        )
+    }
+
+    // Manage Dock Apps Dialog
+    if (showManageDialog) {
+        AlertDialog(
+            onDismissRequest = { showManageDialog = false },
+            containerColor = SecondaryDark,
+            title = {
+                Column {
+                    Text("Manage Dock Apps", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = manageSearchQuery,
+                        onValueChange = { manageSearchQuery = it },
+                        placeholder = { Text("Search apps...", color = Color.Gray) },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            focusedBorderColor = NeonCyan,
+                            unfocusedBorderColor = DockBorderColor,
+                            focusedContainerColor = PrimaryDark,
+                            unfocusedContainerColor = PrimaryDark
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                }
+            },
+            text = {
+                Box(modifier = Modifier.heightIn(max = 400.dp).fillMaxWidth()) {
+                    if (filteredManageApps.isEmpty()) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text(
+                                text = if (macApps.isEmpty()) "No apps synced from Mac yet" else "No matching apps",
+                                color = Color.Gray
+                            )
+                        }
+                    } else {
+                        androidx.compose.foundation.lazy.LazyColumn(
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            items(filteredManageApps) { app ->
+                                val isSelected = app.bundleId in selectedApps
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(if (isSelected) NeonIndigo.copy(alpha = 0.15f) else DockBgColor)
+                                        .clickable {
+                                            if (isSelected) {
+                                                updateSelectedApps(selectedApps - app.bundleId)
+                                            } else {
+                                                updateSelectedApps(selectedApps + app.bundleId)
+                                            }
+                                        }
+                                        .border(0.5.dp, if (isSelected) NeonIndigo else DockBorderColor, RoundedCornerShape(12.dp))
+                                        .padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Row(
+                                        modifier = Modifier.weight(1f),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(36.dp)
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(getAppGradient(app.name)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = app.name.take(1).uppercase(),
+                                                color = Color.White,
+                                                fontSize = 18.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Text(
+                                            text = app.name,
+                                            color = Color.White,
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Icon(
+                                        imageVector = if (isSelected) Icons.Default.Check else Icons.Default.Add,
+                                        contentDescription = if (isSelected) "Selected" else "Add",
+                                        tint = if (isSelected) AccentGreen else Color.LightGray
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { showManageDialog = false },
+                    colors = ButtonDefaults.buttonColors(containerColor = NeonIndigo)
+                ) {
+                    Text("Done", color = Color.White)
+                }
+            }
+        )
+    }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MacGridAppItem(
     app: MacAppInfo,
     isLandscape: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onLongClick: () -> Unit
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = DockBgColor),
@@ -440,7 +644,10 @@ fun MacGridAppItem(
         } else {
             Modifier.fillMaxWidth()
         })
-        .clickable(onClick = onClick)
+        .combinedClickable(
+            onClick = onClick,
+            onLongClick = onLongClick
+        )
         .border(0.5.dp, DockBorderColor, RoundedCornerShape(20.dp))
     ) {
         Column(
