@@ -9,6 +9,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.os.Build
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
@@ -674,6 +675,10 @@ fun NearbyControllerScreen(modifier: Modifier = Modifier) {
         exit = fadeOut(),
         modifier = Modifier.fillMaxSize()
     ) {
+        BackHandler(enabled = isFullScreenViewOpen) {
+            isFullScreenViewOpen = false
+        }
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -684,67 +689,56 @@ fun NearbyControllerScreen(modifier: Modifier = Modifier) {
                 )
                 .padding(20.dp)
         ) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                // Header of Full Screen View
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+            val filteredApps = remember(macApps, selectedApps) {
+                macApps.filter { it.bundleId in selectedApps }
+            }
+
+            if (filteredApps.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Mac Dock Fullscreen",
-                        color = Color.White,
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold
+                        text = "Your Dock is empty. Please add apps first.",
+                        color = Color.LightGray,
+                        fontSize = 16.sp
                     )
-                    IconButton(
-                        onClick = { isFullScreenViewOpen = false },
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(DockBgColor)
-                            .border(0.5.dp, DockBorderColor, RoundedCornerShape(12.dp))
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.FullscreenExit,
-                            contentDescription = "Exit Full Screen",
-                            tint = Color.White
+                }
+            } else {
+                LazyVerticalGrid(
+                    columns = if (isPortrait) GridCells.Fixed(3) else GridCells.Fixed(5),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .displayCutoutPadding() // Handles phone screen cutouts (notch/camera hole)
+                ) {
+                    items(filteredApps) { app ->
+                        FullScreenAppItem(
+                            app = app,
+                            onClick = { nearbyService.openApp(app.bundleId) }
                         )
                     }
                 }
+            }
 
-                // Grid filling the screen
-                val filteredApps = remember(macApps, selectedApps) {
-                    macApps.filter { it.bundleId in selectedApps }
-                }
-
-                if (filteredApps.isEmpty()) {
-                    Box(
-                        modifier = Modifier.weight(1f).fillMaxWidth(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "Your Dock is empty. Please add apps first.",
-                            color = Color.LightGray,
-                            fontSize = 16.sp
-                        )
-                    }
-                } else {
-                    LazyVerticalGrid(
-                        columns = if (isPortrait) GridCells.Fixed(3) else GridCells.Fixed(5),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        modifier = Modifier.weight(1f).fillMaxWidth()
-                    ) {
-                        items(filteredApps) { app ->
-                            FullScreenAppItem(
-                                app = app,
-                                onClick = { nearbyService.openApp(app.bundleId) }
-                            )
-                        }
-                    }
-                }
+            // Subtle floating close button placed safely in the top-right corner, considering displayCutout
+            IconButton(
+                onClick = { isFullScreenViewOpen = false },
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .displayCutoutPadding()
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(Color.Black.copy(alpha = 0.4f))
+                    .border(0.5.dp, DockBorderColor, RoundedCornerShape(18.dp))
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Exit Full Screen",
+                    tint = Color.White,
+                    modifier = Modifier.size(18.dp)
+                )
             }
         }
     }
