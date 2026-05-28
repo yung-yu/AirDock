@@ -1,6 +1,11 @@
 package com.andy.macdock.ui.main
 
 import android.content.Context
+import android.app.Activity
+import android.content.ContextWrapper
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.os.Build
@@ -212,6 +217,26 @@ fun NearbyControllerScreen(modifier: Modifier = Modifier) {
         onDispose {
             nearbyService.stopDiscovery()
             nearbyService.disconnect()
+        }
+    }
+
+    DisposableEffect(isFullScreenViewOpen) {
+        val activity = context.findActivity()
+        activity?.window?.let { window ->
+            val insetsController = WindowCompat.getInsetsController(window, window.decorView)
+            if (isFullScreenViewOpen) {
+                insetsController.hide(WindowInsetsCompat.Type.systemBars())
+                insetsController.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            } else {
+                insetsController.show(WindowInsetsCompat.Type.systemBars())
+            }
+        }
+        onDispose {
+            val activity = context.findActivity()
+            activity?.window?.let { window ->
+                val insetsController = WindowCompat.getInsetsController(window, window.decorView)
+                insetsController.show(WindowInsetsCompat.Type.systemBars())
+            }
         }
     }
 
@@ -851,4 +876,13 @@ fun getAppGradient(appName: String): Brush {
     )
     val index = Math.abs(appName.hashCode()) % gradients.size
     return Brush.linearGradient(gradients[index])
+}
+
+fun Context.findActivity(): Activity? {
+    var context = this
+    while (context is ContextWrapper) {
+        if (context is Activity) return context
+        context = context.baseContext
+    }
+    return null
 }
