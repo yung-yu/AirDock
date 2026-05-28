@@ -6,6 +6,7 @@ Thumbs.db
 # Xcode / macOS build files
 build/
 DerivedData/
+derived_data/
 *.moved-aside
 *.xcuserstate
 xcuserdata/
