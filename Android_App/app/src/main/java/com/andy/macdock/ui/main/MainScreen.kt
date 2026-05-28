@@ -42,6 +42,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -705,19 +706,54 @@ fun NearbyControllerScreen(modifier: Modifier = Modifier) {
                     )
                 }
             } else {
-                LazyVerticalGrid(
-                    columns = if (isPortrait) GridCells.Fixed(3) else GridCells.Fixed(5),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                BoxWithConstraints(
                     modifier = Modifier
                         .fillMaxSize()
                         .displayCutoutPadding() // Handles phone screen cutouts (notch/camera hole)
                 ) {
-                    items(filteredApps) { app ->
-                        FullScreenAppItem(
-                            app = app,
-                            onClick = { nearbyService.openApp(app.bundleId) }
-                        )
+                    val W = maxWidth
+                    val H = maxHeight
+                    val N = filteredApps.size
+                    val spacing = 16.dp
+
+                    // Find C that maximizes size = min(sizeW, sizeH)
+                    var bestC = 1
+                    var bestSize = 0.dp
+                    
+                    for (c in 1..N) {
+                        val r = kotlin.math.ceil(N.toFloat() / c).toInt()
+                        val sizeW = (W - spacing * (c - 1)) / c
+                        val sizeH = (H - spacing * (r - 1)) / r
+                        val size = if (sizeW < sizeH) sizeW else sizeH
+                        if (size > bestSize) {
+                            bestSize = size
+                            bestC = c
+                        }
+                    }
+
+                    // Cap size at 180.dp so icons don't look awkwardly huge if there's only 1 or 2
+                    val finalSize = if (bestSize > 180.dp) 180.dp else bestSize
+
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(bestC),
+                            verticalArrangement = Arrangement.spacedBy(spacing),
+                            horizontalArrangement = Arrangement.spacedBy(spacing),
+                            modifier = Modifier
+                                .width(finalSize * bestC + spacing * (bestC - 1))
+                                .wrapContentHeight() // Dynamic height calculation
+                        ) {
+                            items(filteredApps) { app ->
+                                FullScreenAppItem(
+                                    app = app,
+                                    size = finalSize,
+                                    onClick = { nearbyService.openApp(app.bundleId) }
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -808,13 +844,14 @@ fun MacGridAppItem(
 @Composable
 fun FullScreenAppItem(
     app: MacAppInfo,
+    size: Dp,
     onClick: () -> Unit
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         shape = RoundedCornerShape(24.dp),
         modifier = Modifier
-            .aspectRatio(1f)
+            .size(size)
             .clickable(onClick = onClick)
             .border(0.5.dp, DockBorderColor, RoundedCornerShape(24.dp))
     ) {
@@ -824,11 +861,12 @@ fun FullScreenAppItem(
                 .background(brush = getAppGradient(app.name)),
             contentAlignment = Alignment.Center
         ) {
-            // Large Single Letter
+            // Large Single Letter - dynamically scale with icon size
+            val fontSize = (size.value * 0.35f).sp
             Text(
                 text = app.name.take(1).uppercase(),
                 color = Color.White,
-                fontSize = 40.sp,
+                fontSize = fontSize,
                 fontWeight = FontWeight.ExtraBold,
                 modifier = Modifier.align(Alignment.Center)
             )
@@ -838,13 +876,13 @@ fun FullScreenAppItem(
                     .fillMaxWidth()
                     .align(Alignment.BottomCenter)
                     .background(Color.Black.copy(alpha = 0.45f))
-                    .padding(vertical = 6.dp, horizontal = 8.dp),
+                    .padding(vertical = (size.value * 0.05f).dp, horizontal = 8.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = app.name,
                     color = Color.White,
-                    fontSize = 11.sp,
+                    fontSize = (size.value * 0.09f).coerceIn(9f, 14f).sp,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
                     maxLines = 1,
