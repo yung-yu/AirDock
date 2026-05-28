@@ -7,18 +7,24 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0919563090AD81C2B0B45A93 /* application.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3BE39EE94B675C7C618ECD1 /* application.swift */; };
 		126561BBC1C68863EB4616EB /* NearbyConnections in Frameworks */ = {isa = PBXBuildFile; productRef = CB2983ACC2C79603AFD57554 /* NearbyConnections */; };
+		28C17B6B071737510395B7EF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5A891EB4E82D559A93A49373 /* Assets.xcassets */; };
 		83372AA128A00462B76A619B /* NearbyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AF9C865726A982D4F6F98E2 /* NearbyService.swift */; };
+		9259BBA4B80E7F218E76B1E0 /* appstore.png in Resources */ = {isa = PBXBuildFile; fileRef = C89DD0449ACCB48960289F2C /* appstore.png */; };
+		966DD2A84A970F329F4535F9 /* playstore.png in Resources */ = {isa = PBXBuildFile; fileRef = 95AF013E3B92D6AC6CCDABA1 /* playstore.png */; };
 		AC2578F7B29DCB1B8A747060 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE4DBC84D684EE7CA549300C /* ContentView.swift */; };
+		C355EF2D928D23571C265DAD /* application.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05DE8D4ABF218203DA082021 /* application.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		05DE8D4ABF218203DA082021 /* application.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = application.swift; sourceTree = "<group>"; };
 		32E45AE458E677633B863578 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		4F5F104D22678F70CDA8ECEE /* macOS_App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = macOS_App.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5A891EB4E82D559A93A49373 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		95AF013E3B92D6AC6CCDABA1 /* playstore.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = playstore.png; sourceTree = "<group>"; };
 		9AF9C865726A982D4F6F98E2 /* NearbyService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NearbyService.swift; sourceTree = "<group>"; };
-		B3BE39EE94B675C7C618ECD1 /* application.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = application.swift; sourceTree = "<group>"; };
 		BE4DBC84D684EE7CA549300C /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		C89DD0449ACCB48960289F2C /* appstore.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = appstore.png; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -36,10 +42,13 @@
 		3F66F9F46210A7DA08AA9AC1 /* macOS_App */ = {
 			isa = PBXGroup;
 			children = (
+				05DE8D4ABF218203DA082021 /* application.swift */,
+				C89DD0449ACCB48960289F2C /* appstore.png */,
+				5A891EB4E82D559A93A49373 /* Assets.xcassets */,
 				BE4DBC84D684EE7CA549300C /* ContentView.swift */,
 				32E45AE458E677633B863578 /* Info.plist */,
-				B3BE39EE94B675C7C618ECD1 /* application.swift */,
 				9AF9C865726A982D4F6F98E2 /* NearbyService.swift */,
+				95AF013E3B92D6AC6CCDABA1 /* playstore.png */,
 			);
 			path = macOS_App;
 			sourceTree = "<group>";
@@ -68,6 +77,7 @@
 			buildConfigurationList = A2DA872373A9C031040F97F4 /* Build configuration list for PBXNativeTarget "macOS_App" */;
 			buildPhases = (
 				728268E6BF384661ACE7B2A1 /* Sources */,
+				EE8093B251BF0C6F1BA13B33 /* Resources */,
 				9B0BBE9B1CDD48DD54B9C797 /* Frameworks */,
 			);
 			buildRules = (
@@ -90,6 +100,8 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+				};
 			};
 			buildConfigurationList = D54CEE9BF88F7D636E4093A2 /* Build configuration list for PBXProject "macOS_App" */;
 			developmentRegion = en;
@@ -113,6 +125,19 @@
 		};
 /* End PBXProject section */
 
+/* Begin PBXResourcesBuildPhase section */
+		EE8093B251BF0C6F1BA13B33 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				28C17B6B071737510395B7EF /* Assets.xcassets in Resources */,
+				9259BBA4B80E7F218E76B1E0 /* appstore.png in Resources */,
+				966DD2A84A970F329F4535F9 /* playstore.png in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		728268E6BF384661ACE7B2A1 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -120,7 +145,7 @@
 			files = (
 				AC2578F7B29DCB1B8A747060 /* ContentView.swift in Sources */,
 				83372AA128A00462B76A619B /* NearbyService.swift in Sources */,
-				0919563090AD81C2B0B45A93 /* application.swift in Sources */,
+				C355EF2D928D23571C265DAD /* application.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -205,7 +230,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 12.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.andy.macdock;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.macdock;
 				SDKROOT = macosx;
 			};
 			name = Debug;
@@ -281,7 +306,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 12.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.andy.macdock;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.macdock;
 				SDKROOT = macosx;
 			};
 			name = Release;
