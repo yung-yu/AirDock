@@ -190,6 +190,7 @@ fun NearbyControllerScreen(modifier: Modifier = Modifier) {
     }
 
     var appToRemove by remember { mutableStateOf<MacAppInfo?>(null) }
+    var isFullScreenViewOpen by remember { mutableStateOf(false) }
 
     val configuration = LocalConfiguration.current
     val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
@@ -243,6 +244,20 @@ fun NearbyControllerScreen(modifier: Modifier = Modifier) {
                     }
                 }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (connectionStatus == "Connected") {
+                        IconButton(
+                            onClick = { isFullScreenViewOpen = true },
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(NeonCyan)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Fullscreen,
+                                contentDescription = "Full Screen",
+                                tint = Color.White
+                            )
+                        }
+                    }
                     // Connection Status Tiny Badge
                     if (connectionStatus != "Connected") {
                         Box(
@@ -626,6 +641,88 @@ fun NearbyControllerScreen(modifier: Modifier = Modifier) {
             }
         )
     }
+
+    // Full Screen Grid Overlay
+    AnimatedVisibility(
+        visible = isFullScreenViewOpen,
+        enter = fadeIn(),
+        exit = fadeOut(),
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(PrimaryDark, SecondaryDark)
+                    )
+                )
+                .padding(20.dp)
+        ) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                // Header of Full Screen View
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Mac Dock Fullscreen",
+                        color = Color.White,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    IconButton(
+                        onClick = { isFullScreenViewOpen = false },
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(DockBgColor)
+                            .border(0.5.dp, DockBorderColor, RoundedCornerShape(12.dp))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.FullscreenExit,
+                            contentDescription = "Exit Full Screen",
+                            tint = Color.White
+                        )
+                    }
+                }
+
+                // Grid filling the screen
+                val filteredApps = remember(macApps, selectedApps) {
+                    macApps.filter { it.bundleId in selectedApps }
+                }
+
+                if (filteredApps.isEmpty()) {
+                    Box(
+                        modifier = Modifier.weight(1f).fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Your Dock is empty. Please add apps first.",
+                            color = Color.LightGray,
+                            fontSize = 16.sp
+                        )
+                    }
+                } else {
+                    LazyVerticalGrid(
+                        columns = if (isPortrait) GridCells.Fixed(3) else GridCells.Fixed(5),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.weight(1f).fillMaxWidth()
+                    ) {
+                        items(filteredApps) { app ->
+                            FullScreenAppItem(
+                                app = app,
+                                onClick = { nearbyService.openApp(app.bundleId) }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -685,6 +782,56 @@ fun MacGridAppItem(
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center
             )
+        }
+    }
+}
+
+@Composable
+fun FullScreenAppItem(
+    app: MacAppInfo,
+    onClick: () -> Unit
+) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        shape = RoundedCornerShape(24.dp),
+        modifier = Modifier
+            .aspectRatio(1f)
+            .clickable(onClick = onClick)
+            .border(0.5.dp, DockBorderColor, RoundedCornerShape(24.dp))
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(brush = getAppGradient(app.name)),
+            contentAlignment = Alignment.Center
+        ) {
+            // Large Single Letter
+            Text(
+                text = app.name.take(1).uppercase(),
+                color = Color.White,
+                fontSize = 40.sp,
+                fontWeight = FontWeight.ExtraBold,
+                modifier = Modifier.align(Alignment.Center)
+            )
+            // App Name Overlay at bottom
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+                    .background(Color.Black.copy(alpha = 0.45f))
+                    .padding(vertical = 6.dp, horizontal = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = app.name,
+                    color = Color.White,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
     }
 }
