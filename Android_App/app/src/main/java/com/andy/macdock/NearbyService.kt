@@ -248,4 +248,12 @@ class NearbyService(
         val bytes = jsonStr.toByteArray(Charsets.UTF_8)
         connectionsClient.sendPayload(endpointId, Payload.fromBytes(bytes))
     }
+
+    fun unpairAll() {
+        sharedPrefs.edit()
+            .remove("paired_devices")
+            .remove("macdock_selected_apps")
+            .apply()
+        disconnect()
+    }
 }

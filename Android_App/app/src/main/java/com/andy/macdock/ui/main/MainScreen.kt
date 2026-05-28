@@ -185,6 +185,15 @@ fun NearbyControllerScreen(modifier: Modifier = Modifier) {
         sharedPrefs.edit().putStringSet("macdock_selected_apps", newSet).apply()
     }
 
+    var showUnpairConfirmation by remember { mutableStateOf(false) }
+    var hasPairedDevices by remember {
+        mutableStateOf(sharedPrefs.getString("paired_devices", "{}") != "{}")
+    }
+
+    LaunchedEffect(connectionStatus) {
+        hasPairedDevices = sharedPrefs.getString("paired_devices", "{}") != "{}"
+    }
+
     var showManageDialog by remember { mutableStateOf(false) }
     var manageSearchQuery by remember { mutableStateOf("") }
     
@@ -319,6 +328,22 @@ fun NearbyControllerScreen(modifier: Modifier = Modifier) {
                         }
                     }
                     
+                    if (hasPairedDevices) {
+                        IconButton(
+                            onClick = { showUnpairConfirmation = true },
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(DockBgColor)
+                                .border(0.5.dp, DockBorderColor, RoundedCornerShape(12.dp))
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.LinkOff,
+                                contentDescription = "Unpair Mac",
+                                tint = WarningRed
+                            )
+                        }
+                    }
+
                     IconButton(
                         onClick = {
                             if (connectionStatus == "Connected") {
@@ -389,6 +414,44 @@ fun NearbyControllerScreen(modifier: Modifier = Modifier) {
                             }
                         ) {
                             Text("Reject", color = WarningRed)
+                        }
+                    }
+                )
+            }
+
+            // Unpair Confirmation Dialog
+            if (showUnpairConfirmation) {
+                AlertDialog(
+                    onDismissRequest = { showUnpairConfirmation = false },
+                    containerColor = SecondaryDark,
+                    title = {
+                        Text("Unpair Mac", color = Color.White, fontWeight = FontWeight.Bold)
+                    },
+                    text = {
+                        Text(
+                            "Are you sure you want to unpair your Mac? You will need to re-verify the PIN code next time you connect.",
+                            color = Color.LightGray
+                        )
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                nearbyService.unpairAll()
+                                selectedApps = emptySet()
+                                macApps = emptyList()
+                                hasPairedDevices = false
+                                showUnpairConfirmation = false
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = WarningRed)
+                        ) {
+                            Text("Unpair", color = Color.White)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = { showUnpairConfirmation = false }
+                        ) {
+                            Text("Cancel", color = Color.LightGray)
                         }
                     }
                 )
