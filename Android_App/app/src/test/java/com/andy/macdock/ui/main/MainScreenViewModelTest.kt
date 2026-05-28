@@ -1,6 +1,6 @@
-package com.example.macdock.ui.main
+package com.andy.macdock.ui.main
 
-import com.example.macdock.data.DataRepository
+import com.andy.macdock.data.DataRepository
 import junit.framework.TestCase.assertEquals
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first

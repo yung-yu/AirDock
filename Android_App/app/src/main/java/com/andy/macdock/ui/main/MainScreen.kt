@@ -1,4 +1,4 @@
-package com.example.macdock.ui.main
+package com.andy.macdock.ui.main
 
 import android.content.Context
 import android.content.pm.PackageManager
@@ -38,8 +38,8 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.NavKey
-import com.example.macdock.MacAppInfo
-import com.example.macdock.NearbyService
+import com.andy.macdock.MacAppInfo
+import com.andy.macdock.NearbyService
 
 // Custom Premium Colors matching macOS Dock style
 val PrimaryDark = Color(0xFF0F172A)     // Slate 900

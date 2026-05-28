@@ -5,10 +5,10 @@ plugins {
 }
 
 android {
-    namespace = "com.example.macdock"
+    namespace = "com.andy.macdock"
     compileSdk = 36
     defaultConfig {
-        applicationId = "com.example.macdock"
+        applicationId = "com.andy.macdock"
         minSdk = 24
         targetSdk = 36
         versionCode = 1

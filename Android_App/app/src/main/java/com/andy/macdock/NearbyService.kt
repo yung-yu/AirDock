@@ -1,4 +1,4 @@
-package com.example.macdock
+package com.andy.macdock
 
 import android.content.Context
 import android.os.Build
@@ -11,6 +11,7 @@ import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.net.InetSocketAddress
 import java.net.Socket
+import androidx.core.content.edit
 
 data class MacAppInfo(val name: String, val bundleId: String)
 
@@ -21,7 +22,7 @@ class NearbyService(
     private val onAppListReceived: (List<MacAppInfo>) -> Unit
 ) {
     private val connectionsClient = Nearby.getConnectionsClient(context)
-    private val serviceId = "com.antigravity.macdock"
+    private val serviceId = "com.andy.macdock"
     private var connectedEndpointId: String? = null
 
     private val sharedPrefs = context.getSharedPreferences("macdock_prefs", Context.MODE_PRIVATE)
@@ -33,7 +34,7 @@ class NearbyService(
             var uuid = sharedPrefs.getString("my_uuid", null)
             if (uuid == null) {
                 uuid = java.util.UUID.randomUUID().toString()
-                sharedPrefs.edit().putString("my_uuid", uuid).apply()
+                sharedPrefs.edit { putString("my_uuid", uuid) }
             }
             return uuid
         }
@@ -56,7 +57,7 @@ class NearbyService(
         val paired = getPairedDevices().toMutableMap()
         paired[macUuid] = token
         val json = JSONObject(paired as Map<*, *>)
-        sharedPrefs.edit().putString("paired_devices", json.toString()).apply()
+        sharedPrefs.edit { putString("paired_devices", json.toString()) }
     }
 
     private fun sendVerifyPairing(endpointId: String, macUuid: String, token: String) {

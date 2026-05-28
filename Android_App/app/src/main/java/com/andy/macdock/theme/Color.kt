@@ -1,4 +1,4 @@
-package com.example.macdock.theme
+package com.andy.macdock.theme
 
 import androidx.compose.ui.graphics.Color
 

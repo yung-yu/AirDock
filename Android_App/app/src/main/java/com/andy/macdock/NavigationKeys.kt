@@ -1,4 +1,4 @@
-package com.example.macdock
+package com.andy.macdock
 
 import androidx.navigation3.runtime.NavKey
 import kotlinx.serialization.Serializable

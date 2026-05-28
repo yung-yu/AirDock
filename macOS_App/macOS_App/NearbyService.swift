@@ -47,7 +47,7 @@ class NearbyService: NSObject, ObservableObject, ConnectionManagerDelegate, Adve
     
     private var connectionManager: ConnectionManager!
     private var advertiser: Advertiser!
-    private let serviceId = "com.antigravity.macdock"
+    private let serviceId = "com.andy.macdock"
     
     private var tempVerificationHandler: ((Bool) -> Void)?
     
