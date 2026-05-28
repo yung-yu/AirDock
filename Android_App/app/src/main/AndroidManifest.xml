@@ -32,6 +32,7 @@
         android:theme="@style/Theme.MyApplication">
         <activity
             android:name="com.andy.macdock.MainActivity"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
