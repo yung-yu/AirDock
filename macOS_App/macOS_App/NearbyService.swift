@@ -128,19 +128,15 @@ class NearbyService: NSObject, ObservableObject, ConnectionManagerDelegate, Adve
     }
     
     func launchApp(bundleId: String) {
-        if let runningApp = NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == bundleId }) {
-            runningApp.activate(options: [.activateIgnoringOtherApps])
-        } else {
-            guard let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleId) else {
-                print("App URL not found for \(bundleId)")
-                return
-            }
-            let config = NSWorkspace.OpenConfiguration()
-            config.activates = true
-            NSWorkspace.shared.openApplication(at: appURL, configuration: config) { _, error in
-                if let error = error {
-                    print("Failed to open app \(bundleId): \(error.localizedDescription)")
-                }
+        guard let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleId) else {
+            print("App URL not found for \(bundleId)")
+            return
+        }
+        let config = NSWorkspace.OpenConfiguration()
+        config.activates = true
+        NSWorkspace.shared.openApplication(at: appURL, configuration: config) { _, error in
+            if let error = error {
+                print("Failed to open app \(bundleId): \(error.localizedDescription)")
             }
         }
     }
