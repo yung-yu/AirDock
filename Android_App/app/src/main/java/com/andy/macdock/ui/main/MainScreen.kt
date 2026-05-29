@@ -80,7 +80,9 @@ private fun getCustomIconFile(context: Context, bundleId: String): java.io.File 
     if (!dir.exists()) {
         dir.mkdirs()
     }
-    return java.io.File(dir, "${bundleId}.png")
+    // Encode bundleId to prevent path traversal
+    val safeName = android.util.Base64.encodeToString(bundleId.toByteArray(java.nio.charset.StandardCharsets.UTF_8), android.util.Base64.NO_WRAP or android.util.Base64.URL_SAFE)
+    return java.io.File(dir, "${safeName}.png")
 }
 
 private fun saveCustomIcon(context: Context, bundleId: String, bitmap: android.graphics.Bitmap) {
