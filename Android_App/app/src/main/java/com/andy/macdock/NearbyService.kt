@@ -29,6 +29,18 @@ class NearbyService(
     private var connectingMacUuid: String? = null
     private var isConnectingToPaired: Boolean = false
 
+    private var pendingAndroidNonce: String? = null
+    private var isFullyConnected: Boolean = false
+    private var verificationRunnable: Runnable? = null
+    private val handler = Handler(Looper.getMainLooper())
+
+    private fun sha256(input: String): String {
+        val bytes = input.toByteArray(Charsets.UTF_8)
+        val md = java.security.MessageDigest.getInstance("SHA-256")
+        val digest = md.digest(bytes)
+        return digest.joinToString("") { "%02x".format(it) }
+    }
+
     private val myUUID: String
         get() {
             var uuid = sharedPrefs.getString("my_uuid", null)
@@ -95,7 +107,67 @@ class NearbyService(
                     try {
                         val json = JSONObject(jsonStr)
                         val type = json.optString("type")
-                        if (type == "APP_LIST") {
+                        if (type == "CHALLENGE") {
+                            val macNonce = json.optString("token")
+                            val remoteUuid = connectingMacUuid
+                            if (!macNonce.isNullOrEmpty() && remoteUuid != null) {
+                                val paired = getPairedDevices()
+                                val token = paired[remoteUuid]
+                                if (token != null) {
+                                    val androidResponse = sha256(macNonce + token)
+                                    val androidNonce = java.util.UUID.randomUUID().toString()
+                                    pendingAndroidNonce = androidNonce
+                                    
+                                    // Setup timeout timer
+                                    verificationRunnable?.let { handler.removeCallbacks(it) }
+                                    val runnable = Runnable {
+                                        if (connectedEndpointId == endpointId && !isFullyConnected) {
+                                            disconnect()
+                                        }
+                                    }
+                                    verificationRunnable = runnable
+                                    handler.postDelayed(runnable, 10000) // 10 seconds
+                                    
+                                    val verifyPayload = JSONObject().apply {
+                                        put("type", "VERIFY_PAIRING")
+                                        put("uuid", myUUID)
+                                        put("token", androidResponse)
+                                        put("challenge", androidNonce)
+                                    }
+                                    val responseBytes = verifyPayload.toString().toByteArray(Charsets.UTF_8)
+                                    connectionsClient.sendPayload(endpointId, Payload.fromBytes(responseBytes))
+                                } else {
+                                    disconnect()
+                                }
+                            } else {
+                                disconnect()
+                            }
+                        } else if (type == "VERIFY_RESPONSE") {
+                            val macResponse = json.optString("token")
+                            val androidNonce = pendingAndroidNonce
+                            val remoteUuid = connectingMacUuid
+                            if (!macResponse.isNullOrEmpty() && !androidNonce.isNullOrEmpty() && remoteUuid != null) {
+                                val paired = getPairedDevices()
+                                val token = paired[remoteUuid]
+                                if (token != null) {
+                                    val expectedMacResponse = sha256(androidNonce + token)
+                                    if (macResponse == expectedMacResponse) {
+                                        // macOS verified!
+                                        isFullyConnected = true
+                                        verificationRunnable?.let {
+                                            handler.removeCallbacks(it)
+                                            verificationRunnable = null
+                                        }
+                                    } else {
+                                        disconnect()
+                                    }
+                                } else {
+                                    disconnect()
+                                }
+                            } else {
+                                disconnect()
+                            }
+                        } else if (type == "APP_LIST") {
                             val appsArray = json.getJSONArray("apps")
                             val apps = mutableListOf<MacAppInfo>()
                             for (i in 0 until appsArray.length()) {
@@ -160,7 +232,8 @@ class NearbyService(
                 if (remoteUuid != null) {
                     val paired = getPairedDevices()
                     if (paired.containsKey(remoteUuid)) {
-                        sendVerifyPairing(endpointId, remoteUuid, paired[remoteUuid]!!)
+                        // Already paired, wait for macOS to send CHALLENGE
+                        isFullyConnected = false
                     } else {
                         sendPairingRequest(endpointId)
                     }
@@ -175,6 +248,12 @@ class NearbyService(
         override fun onDisconnected(endpointId: String) {
             if (connectedEndpointId == endpointId) {
                 connectedEndpointId = null
+                isFullyConnected = false
+                pendingAndroidNonce = null
+                verificationRunnable?.let {
+                    handler.removeCallbacks(it)
+                    verificationRunnable = null
+                }
                 onStatusChanged("Disconnected")
             }
         }
@@ -233,6 +312,12 @@ class NearbyService(
         connectedEndpointId?.let {
             connectionsClient.disconnectFromEndpoint(it)
             connectedEndpointId = null
+        }
+        isFullyConnected = false
+        pendingAndroidNonce = null
+        verificationRunnable?.let {
+            handler.removeCallbacks(it)
+            verificationRunnable = null
         }
         onStatusChanged("Disconnected")
     }
