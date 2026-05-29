@@ -168,11 +168,16 @@ fun PermissionRequestScreen(onRequestPermissions: () -> Unit) {
 @Composable
 fun NearbyControllerScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    var connectionStatus by remember { mutableStateOf("Disconnected") }
-    var verificationPin by remember { mutableStateOf<String?>(null) }
-    var showVerificationDialog by remember { mutableStateOf(false) }
-    var verificationHandler by remember { mutableStateOf<((Boolean) -> Unit)?>(null) }
-    var macApps by remember { mutableStateOf<List<MacAppInfo>>(emptyList()) }
+    val viewModel: MainScreenViewModel = viewModel(factory = MainScreenViewModel.Factory)
+    
+    // Initialize NearbyService through ViewModel (MVVM)
+    viewModel.initializeNearbyService(context)
+
+    val connectionStatus = viewModel.connectionStatus
+    val verificationPin = viewModel.verificationPin
+    val showVerificationDialog = viewModel.showVerificationDialog
+    val verificationHandler = viewModel.verificationHandler
+    val macApps = viewModel.macApps
     var searchQuery by remember { mutableStateOf("") }
 
     val sharedPrefs = remember { context.getSharedPreferences("macdock_prefs", Context.MODE_PRIVATE) }
@@ -211,23 +216,26 @@ fun NearbyControllerScreen(modifier: Modifier = Modifier) {
     val configuration = LocalConfiguration.current
     val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
 
-    val nearbyService = remember {
-        NearbyService(
-            context = context.applicationContext,
-            onStatusChanged = { status -> connectionStatus = status },
-            onVerificationRequired = { pin, handler ->
-                verificationPin = pin
-                verificationHandler = handler
-                showVerificationDialog = true
-            },
-            onAppListReceived = { list -> macApps = list }
-        )
-    }
-
-    DisposableEffect(Unit) {
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, viewModel) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            when (event) {
+                androidx.lifecycle.Lifecycle.Event.ON_START -> {
+                    if (viewModel.connectionStatus != "Connected" && viewModel.connectionStatus != "Paired & Connected") {
+                        viewModel.startDiscovery()
+                    }
+                }
+                androidx.lifecycle.Lifecycle.Event.ON_STOP -> {
+                    viewModel.stopDiscovery()
+                }
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
-            nearbyService.stopDiscovery()
-            nearbyService.disconnect()
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            viewModel.stopDiscovery()
+            viewModel.disconnect()
         }
     }
 
@@ -347,9 +355,9 @@ fun NearbyControllerScreen(modifier: Modifier = Modifier) {
                     IconButton(
                         onClick = {
                             if (connectionStatus == "Connected") {
-                                nearbyService.disconnect()
+                                viewModel.disconnect()
                             } else {
-                                nearbyService.startDiscovery()
+                                viewModel.startDiscovery()
                             }
                         },
                         modifier = Modifier
@@ -372,7 +380,7 @@ fun NearbyControllerScreen(modifier: Modifier = Modifier) {
                 AlertDialog(
                     onDismissRequest = {
                         verificationHandler?.invoke(false)
-                        showVerificationDialog = false
+                        viewModel.showVerificationDialog = false
                     },
                     containerColor = SecondaryDark,
                     title = {
@@ -399,7 +407,7 @@ fun NearbyControllerScreen(modifier: Modifier = Modifier) {
                         Button(
                             onClick = {
                                 verificationHandler?.invoke(true)
-                                showVerificationDialog = false
+                                viewModel.showVerificationDialog = false
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = AccentGreen)
                         ) {
@@ -410,7 +418,7 @@ fun NearbyControllerScreen(modifier: Modifier = Modifier) {
                         TextButton(
                             onClick = {
                                 verificationHandler?.invoke(false)
-                                showVerificationDialog = false
+                                viewModel.showVerificationDialog = false
                             }
                         ) {
                             Text("Reject", color = WarningRed)
@@ -436,9 +444,8 @@ fun NearbyControllerScreen(modifier: Modifier = Modifier) {
                     confirmButton = {
                         Button(
                             onClick = {
-                                nearbyService.unpairAll()
+                                viewModel.unpairAll()
                                 selectedApps = emptySet()
-                                macApps = emptyList()
                                 hasPairedDevices = false
                                 showUnpairConfirmation = false
                             },
@@ -495,11 +502,11 @@ fun NearbyControllerScreen(modifier: Modifier = Modifier) {
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 modifier = Modifier.fillMaxSize()
                             ) {
-                                items(filteredApps) { app ->
+                                 items(filteredApps) { app ->
                                     MacGridAppItem(
                                         app = app,
                                         isLandscape = false,
-                                        onClick = { nearbyService.openApp(app.bundleId) },
+                                        onClick = { viewModel.openApp(app.bundleId) },
                                         onLongClick = { appToRemove = app }
                                     )
                                 }
@@ -516,7 +523,7 @@ fun NearbyControllerScreen(modifier: Modifier = Modifier) {
                                     MacGridAppItem(
                                         app = app,
                                         isLandscape = true,
-                                        onClick = { nearbyService.openApp(app.bundleId) },
+                                        onClick = { viewModel.openApp(app.bundleId) },
                                         onLongClick = { appToRemove = app }
                                     )
                                 }
@@ -813,7 +820,7 @@ fun NearbyControllerScreen(modifier: Modifier = Modifier) {
                                 FullScreenAppItem(
                                     app = app,
                                     size = finalSize,
-                                    onClick = { nearbyService.openApp(app.bundleId) }
+                                    onClick = { viewModel.openApp(app.bundleId) }
                                 )
                             }
                         }
