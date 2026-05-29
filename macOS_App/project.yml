@@ -4,7 +4,7 @@ options:
   deploymentTarget:
     macOS: "12.0"
 targets:
-  Mac Dock Control:
+  AirDock:
     type: application
     platform: macOS
     sources:
@@ -20,8 +20,8 @@ targets:
         NSBonjourServices:
           - "_13c57208059cec59d12fa6e8._tcp"
         CFBundleIdentifier: com.example.macdock
-        CFBundleDisplayName: "Mac Dock Control"
-        CFBundleName: "Mac Dock Control"
+        CFBundleDisplayName: "AirDock"
+        CFBundleName: "AirDock"
         LSMinimumSystemVersion: "12.0"
     settings:
       CODE_SIGN_IDENTITY: "-"

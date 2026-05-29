@@ -10,7 +10,7 @@ struct ContentView: View {
             VStack(alignment: .leading, spacing: 20) {
                 // Header
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Mac Dock Control")
+                    Text("AirDock")
                         .font(.system(size: 28, weight: .black))
                         .foregroundColor(.white)
                     Text("Nearby Server")

@@ -266,7 +266,7 @@ fun NearbyControllerScreen(modifier: Modifier = Modifier) {
                 if (connectionStatus != "Connected") {
                     Column {
                         Text(
-                            text = "Mac Dock",
+                            text = "AirDock",
                             color = Color.White,
                             fontSize = if (isPortrait) 28.sp else 22.sp,
                             fontWeight = FontWeight.ExtraBold
