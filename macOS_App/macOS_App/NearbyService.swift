@@ -79,6 +79,9 @@ class NearbyService: NSObject, ObservableObject, ConnectionManagerDelegate, Adve
             let apps = self.getInstalledApps()
             DispatchQueue.main.async {
                 self.installedApps = apps
+                for endpointId in self.authorizedEndpoints {
+                    self.sendAppList(to: endpointId)
+                }
             }
         }
     }
@@ -143,7 +146,7 @@ class NearbyService: NSObject, ObservableObject, ConnectionManagerDelegate, Adve
     }
     
     func sendAppList(to endpointId: EndpointID) {
-        let appList = installedApps.isEmpty ? getInstalledApps() : installedApps
+        let appList = installedApps
         let payload = AppPayload(type: "APP_LIST", apps: appList, bundleId: nil, uuid: nil, token: nil, challenge: nil)
         if let data = try? JSONEncoder().encode(payload) {
             _ = connectionManager.send(data, to: [endpointId])
@@ -174,28 +177,32 @@ class NearbyService: NSObject, ObservableObject, ConnectionManagerDelegate, Adve
     
     // MARK: - AdvertiserDelegate
     func advertiser(_ advertiser: Advertiser, didReceiveConnectionRequestFrom endpointID: EndpointID, with context: Data, connectionRequestHandler: @escaping (Bool) -> Void) {
-        if let remoteName = String(data: context, encoding: .utf8) {
-            pendingConnections[endpointID] = remoteName
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            if let remoteName = String(data: context, encoding: .utf8) {
+                self.pendingConnections[endpointID] = remoteName
+            }
+            connectionRequestHandler(true)
         }
-        connectionRequestHandler(true)
     }
     
     // MARK: - ConnectionManagerDelegate
     func connectionManager(_ connectionManager: ConnectionManager, didReceive verificationCode: String, from endpointID: EndpointID, verificationHandler: @escaping (Bool) -> Void) {
-        let remoteName = pendingConnections[endpointID] ?? ""
-        let parts = remoteName.split(separator: "|")
-        let remoteUuid = parts.count > 1 ? String(parts[1]) : nil
-        
-        if let uuid = remoteUuid, pairedDevices[uuid] != nil {
-            // Already paired, auto-accept
-            verificationHandler(true)
-        } else {
-            // New pairing: show verification code
-            DispatchQueue.main.async {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            let remoteName = self.pendingConnections[endpointID] ?? ""
+            let parts = remoteName.split(separator: "|")
+            let remoteUuid = parts.count > 1 ? String(parts[1]) : nil
+            
+            if let uuid = remoteUuid, self.pairedDevices[uuid] != nil {
+                // Already paired, auto-accept
+                verificationHandler(true)
+            } else {
+                // New pairing: show verification code
                 self.verificationCode = verificationCode
                 self.connectionStatus = "Verifying..."
+                self.tempVerificationHandler = verificationHandler
             }
-            self.tempVerificationHandler = verificationHandler
         }
     }
     
@@ -256,70 +263,66 @@ class NearbyService: NSObject, ObservableObject, ConnectionManagerDelegate, Adve
     }
     
     func connectionManager(_ connectionManager: ConnectionManager, didReceive data: Data, withID payloadID: PayloadID, from endpointID: EndpointID) {
-        if let payload = try? JSONDecoder().decode(AppPayload.self, from: data) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            guard let payload = try? JSONDecoder().decode(AppPayload.self, from: data) else { return }
             switch payload.type {
             case "PAIRING_REQUEST":
                 if let clientUuid = payload.uuid {
                     let token = UUID().uuidString
-                    var paired = pairedDevices
+                    var paired = self.pairedDevices
                     paired[clientUuid] = token
-                    pairedDevices = paired
+                    self.pairedDevices = paired
                     
-                    let response = AppPayload(type: "PAIRING_RESPONSE", apps: nil, bundleId: nil, uuid: myUUID, token: token, challenge: nil)
+                    let response = AppPayload(type: "PAIRING_RESPONSE", apps: nil, bundleId: nil, uuid: self.myUUID, token: token, challenge: nil)
                     if let responseData = try? JSONEncoder().encode(response) {
-                        _ = connectionManager.send(responseData, to: [endpointID])
+                        _ = self.connectionManager.send(responseData, to: [endpointID])
                     }
-                    authorizedEndpoints.insert(endpointID)
-                    DispatchQueue.main.async {
-                        self.connectionStatus = "Connected"
-                    }
+                    self.authorizedEndpoints.insert(endpointID)
+                    self.connectionStatus = "Connected"
                     self.sendAppList(to: endpointID)
                 }
             case "VERIFY_PAIRING":
                 if let clientUuid = payload.uuid, let clientResponse = payload.token, let androidNonce = payload.challenge {
-                    guard let macNonce = pendingChallenges[endpointID],
-                          let expectedToken = pairedDevices[clientUuid] else {
+                    guard let macNonce = self.pendingChallenges[endpointID],
+                          let expectedToken = self.pairedDevices[clientUuid] else {
                         print("Verification context missing for \(clientUuid)")
-                        connectionManager.disconnect(from: endpointID)
+                        self.connectionManager.disconnect(from: endpointID)
                         break
                     }
-                    let expectedResponse = sha256(macNonce + expectedToken)
+                    let expectedResponse = self.sha256(macNonce + expectedToken)
                     if clientResponse == expectedResponse {
                         // Client is successfully verified!
                         // Now respond to client's challenge
-                        let macResponse = sha256(androidNonce + expectedToken)
+                        let macResponse = self.sha256(androidNonce + expectedToken)
                         let responsePayload = AppPayload(type: "VERIFY_RESPONSE", apps: nil, bundleId: nil, uuid: nil, token: macResponse, challenge: nil)
                         
                         // Clean up challenge and timer
-                        pendingChallenges.removeValue(forKey: endpointID)
-                        verificationTimers[endpointID]?.cancel()
-                        verificationTimers.removeValue(forKey: endpointID)
+                        self.pendingChallenges.removeValue(forKey: endpointID)
+                        self.verificationTimers[endpointID]?.cancel()
+                        self.verificationTimers.removeValue(forKey: endpointID)
                         
                         if let responseData = try? JSONEncoder().encode(responsePayload) {
-                            _ = connectionManager.send(responseData, to: [endpointID])
+                            _ = self.connectionManager.send(responseData, to: [endpointID])
                         }
                         
-                        authorizedEndpoints.insert(endpointID)
-                        DispatchQueue.main.async {
-                            self.connectionStatus = "Connected"
-                        }
+                        self.authorizedEndpoints.insert(endpointID)
+                        self.connectionStatus = "Connected"
                         self.sendAppList(to: endpointID)
                     } else {
                         print("Verification challenge-response failed for \(clientUuid)")
-                        pendingChallenges.removeValue(forKey: endpointID)
-                        verificationTimers[endpointID]?.cancel()
-                        verificationTimers.removeValue(forKey: endpointID)
-                        connectionManager.disconnect(from: endpointID)
+                        self.pendingChallenges.removeValue(forKey: endpointID)
+                        self.verificationTimers[endpointID]?.cancel()
+                        self.verificationTimers.removeValue(forKey: endpointID)
+                        self.connectionManager.disconnect(from: endpointID)
                     }
                 } else {
                     print("Malformed VERIFY_PAIRING payload")
-                    connectionManager.disconnect(from: endpointID)
+                    self.connectionManager.disconnect(from: endpointID)
                 }
             case "OPEN_APP":
-                if authorizedEndpoints.contains(endpointID), let bundleId = payload.bundleId {
-                    DispatchQueue.main.async {
-                        self.launchApp(bundleId: bundleId)
-                    }
+                if self.authorizedEndpoints.contains(endpointID), let bundleId = payload.bundleId {
+                    self.launchApp(bundleId: bundleId)
                 }
             default:
                 break
