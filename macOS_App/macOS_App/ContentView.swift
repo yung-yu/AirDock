@@ -207,7 +207,7 @@ struct ContentView: View {
     }
     
     private var filteredApps: [MacAppInfo] {
-        let allApps = service.getInstalledApps()
+        let allApps = service.installedApps
         if searchText.isEmpty {
             return allApps
         } else {
