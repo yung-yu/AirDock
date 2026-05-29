@@ -82,7 +82,20 @@ private fun getCustomIconFile(context: Context, bundleId: String): java.io.File 
     }
     // Encode bundleId to prevent path traversal
     val safeName = android.util.Base64.encodeToString(bundleId.toByteArray(java.nio.charset.StandardCharsets.UTF_8), android.util.Base64.NO_WRAP or android.util.Base64.URL_SAFE)
-    return java.io.File(dir, "${safeName}.png")
+    val safeFile = java.io.File(dir, "${safeName}.png")
+
+    // Migrate old plaintext filename (e.g. bundleId.png) if it exists, is safe, and new one doesn't exist
+    if (!bundleId.contains("..") && !bundleId.contains("/") && !bundleId.contains("\\")) {
+        val oldFile = java.io.File(dir, "${bundleId}.png")
+        if (oldFile.exists() && !safeFile.exists()) {
+            try {
+                oldFile.renameTo(safeFile)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+    return safeFile
 }
 
 private fun saveCustomIcon(context: Context, bundleId: String, bitmap: android.graphics.Bitmap) {
