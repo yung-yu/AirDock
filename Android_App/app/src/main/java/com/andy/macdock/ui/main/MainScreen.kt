@@ -18,6 +18,17 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.ClipOp
+import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
@@ -63,6 +74,236 @@ val WarningRed = Color(0xFFEF4444)      // Red 500
 // macOS Dock Style Glassmorphic Background for overall layout
 val DockBorderColor = Color.White.copy(alpha = 0.15f)
 val DockBgColor = Color.White.copy(alpha = 0.08f)
+
+private fun getCustomIconFile(context: Context, bundleId: String): java.io.File {
+    val dir = java.io.File(context.filesDir, "custom_icons")
+    if (!dir.exists()) {
+        dir.mkdirs()
+    }
+    return java.io.File(dir, "${bundleId}.png")
+}
+
+private fun saveCustomIcon(context: Context, bundleId: String, bitmap: android.graphics.Bitmap) {
+    val file = getCustomIconFile(context, bundleId)
+    try {
+        java.io.FileOutputStream(file).use { out ->
+            bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out)
+        }
+    } catch (e: java.lang.Exception) {
+        e.printStackTrace()
+    }
+}
+
+private fun removeCustomIcon(context: Context, bundleId: String) {
+    val file = getCustomIconFile(context, bundleId)
+    if (file.exists()) {
+        file.delete()
+    }
+}
+
+private fun Dp.toPx(context: Context): Float {
+    return this.value * context.resources.displayMetrics.density
+}
+
+private fun loadSampledBitmap(context: Context, uri: android.net.Uri, maxDimension: Int = 1024): android.graphics.Bitmap? {
+    try {
+        var inputStream = context.contentResolver.openInputStream(uri) ?: return null
+        val options = android.graphics.BitmapFactory.Options().apply {
+            inJustDecodeBounds = true
+        }
+        android.graphics.BitmapFactory.decodeStream(inputStream, null, options)
+        inputStream.close()
+
+        var srcWidth = options.outWidth
+        var srcHeight = options.outHeight
+        var sampleSize = 1
+        while (srcWidth / 2 >= maxDimension || srcHeight / 2 >= maxDimension) {
+            srcWidth /= 2
+            srcHeight /= 2
+            sampleSize *= 2
+        }
+
+        val decodeOptions = android.graphics.BitmapFactory.Options().apply {
+            inSampleSize = sampleSize
+        }
+        inputStream = context.contentResolver.openInputStream(uri) ?: return null
+        val bitmap = android.graphics.BitmapFactory.decodeStream(inputStream, null, decodeOptions)
+        inputStream.close()
+        return bitmap
+    } catch (e: java.lang.Exception) {
+        e.printStackTrace()
+        return null
+    }
+}
+
+@Composable
+fun ImageCropperDialog(
+    bitmap: android.graphics.Bitmap,
+    onDismiss: () -> Unit,
+    onConfirm: (android.graphics.Bitmap) -> Unit
+) {
+    var scale by remember { mutableStateOf(1f) }
+    var offset by remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
+
+    val context = LocalContext.current
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+        modifier = Modifier.fillMaxSize(),
+        containerColor = PrimaryDark,
+        title = null,
+        text = {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "Crop App Icon",
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                Box(
+                    modifier = Modifier
+                        .size(300.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color.Black)
+                        .pointerInput(Unit) {
+                            detectTransformGestures { _, pan, zoom, _ ->
+                                scale = (scale * zoom).coerceIn(1f, 5f)
+                                offset += pan
+                            }
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    val imageBitmap = remember(bitmap) { bitmap.asImageBitmap() }
+                    androidx.compose.foundation.Image(
+                        bitmap = imageBitmap,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer(
+                                scaleX = scale,
+                                scaleY = scale,
+                                translationX = offset.x,
+                                translationY = offset.y
+                            )
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .drawWithContent {
+                                drawContent()
+                                val cropSizePx = 200.dp.toPx()
+                                val left = (size.width - cropSizePx) / 2
+                                val top = (size.height - cropSizePx) / 2
+                                
+                                val path = Path().apply {
+                                    addRect(androidx.compose.ui.geometry.Rect(0f, 0f, size.width, size.height))
+                                }
+                                val cutoutPath = Path().apply {
+                                    addRoundRect(
+                                        androidx.compose.ui.geometry.RoundRect(
+                                            rect = androidx.compose.ui.geometry.Rect(left, top, left + cropSizePx, top + cropSizePx),
+                                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(24f, 24f)
+                                        )
+                                    )
+                                }
+                                
+                                clipPath(cutoutPath, clipOp = ClipOp.Difference) {
+                                    drawRect(Color.Black.copy(alpha = 0.65f))
+                                }
+                                
+                                drawRoundRect(
+                                    color = NeonCyan,
+                                    topLeft = androidx.compose.ui.geometry.Offset(left, top),
+                                    size = androidx.compose.ui.geometry.Size(cropSizePx, cropSizePx),
+                                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(24f, 24f),
+                                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx())
+                                )
+                            }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.Remove, contentDescription = "Zoom Out", tint = Color.Gray)
+                    Slider(
+                        value = scale,
+                        onValueChange = { scale = it },
+                        valueRange = 1f..5f,
+                        colors = SliderDefaults.colors(
+                            thumbColor = NeonCyan,
+                            activeTrackColor = NeonCyan,
+                            inactiveTrackColor = Color.DarkGray
+                        ),
+                        modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
+                    )
+                    Icon(Icons.Default.Add, contentDescription = "Zoom In", tint = Color.Gray)
+                }
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+                        border = BorderStroke(1.dp, Color.Gray)
+                    ) {
+                        Text("Cancel")
+                    }
+                    Button(
+                        onClick = {
+                            val targetSize = 256
+                            val cropped = android.graphics.Bitmap.createBitmap(targetSize, targetSize, android.graphics.Bitmap.Config.ARGB_8888)
+                            val canvas = android.graphics.Canvas(cropped)
+                            
+                            val W = bitmap.width.toFloat()
+                            val H = bitmap.height.toFloat()
+                            
+                            val containerSizePx = 300.dp.toPx(context)
+                            val scaleBase = if (W > H) containerSizePx / W else containerSizePx / H
+                            
+                            val cropBoxSizePx = 200.dp.toPx(context)
+                            val ratio = targetSize.toFloat() / cropBoxSizePx
+                            
+                            val matrix = android.graphics.Matrix()
+                            matrix.postTranslate(-W / 2f, -H / 2f)
+                            matrix.postScale(scaleBase * scale, scaleBase * scale)
+                            matrix.postTranslate(offset.x, offset.y)
+                            matrix.postScale(ratio, ratio)
+                            matrix.postTranslate(targetSize / 2f, targetSize / 2f)
+                            
+                            val paint = android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG)
+                            canvas.drawBitmap(bitmap, matrix, paint)
+                            
+                            onConfirm(cropped)
+                        },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(containerColor = NeonIndigo)
+                    ) {
+                        Text("Confirm", color = Color.White)
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {}
+    )
+}
 
 @Composable
 fun MainScreen(
@@ -201,6 +442,23 @@ fun NearbyControllerScreen(modifier: Modifier = Modifier) {
 
     var showManageDialog by remember { mutableStateOf(false) }
     var manageSearchQuery by remember { mutableStateOf("") }
+    
+    var customIconsTrigger by remember { mutableStateOf(0) }
+    var activeAppMenu by remember { mutableStateOf<MacAppInfo?>(null) }
+    var selectedImageUriForCropping by remember { mutableStateOf<android.net.Uri?>(null) }
+    val bitmapToCrop = remember(selectedImageUriForCropping) {
+        selectedImageUriForCropping?.let { uri ->
+            loadSampledBitmap(context, uri)
+        }
+    }
+    
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) {
+            selectedImageUriForCropping = uri
+        }
+    }
     
     val filteredManageApps = remember(macApps, manageSearchQuery) {
         if (manageSearchQuery.isBlank()) {
@@ -503,13 +761,14 @@ fun NearbyControllerScreen(modifier: Modifier = Modifier) {
                                 modifier = Modifier.fillMaxSize()
                             ) {
                                  items(filteredApps) { app ->
-                                    MacGridAppItem(
-                                        app = app,
-                                        isLandscape = false,
-                                        onClick = { viewModel.openApp(app.bundleId) },
-                                        onLongClick = { appToRemove = app }
-                                    )
-                                }
+                                     MacGridAppItem(
+                                         app = app,
+                                         isLandscape = false,
+                                         onClick = { viewModel.openApp(app.bundleId) },
+                                         onLongClick = { activeAppMenu = app },
+                                         customIconsTrigger = customIconsTrigger
+                                     )
+                                 }
                             }
                         } else {
                             // Landscape: 2 rows horizontal scroll (Dock layout)
@@ -524,7 +783,8 @@ fun NearbyControllerScreen(modifier: Modifier = Modifier) {
                                         app = app,
                                         isLandscape = true,
                                         onClick = { viewModel.openApp(app.bundleId) },
-                                        onLongClick = { appToRemove = app }
+                                        onLongClick = { activeAppMenu = app },
+                                        customIconsTrigger = customIconsTrigger
                                     )
                                 }
                             }
@@ -624,6 +884,105 @@ fun NearbyControllerScreen(modifier: Modifier = Modifier) {
                 TextButton(onClick = { appToRemove = null }) {
                     Text("Cancel", color = Color.LightGray)
                 }
+            }
+        )
+    }
+
+    // App Context Menu Dialog (only show when not cropping)
+    if (activeAppMenu != null && selectedImageUriForCropping == null) {
+        val app = activeAppMenu!!
+        val hasCustomIcon = remember(app.bundleId, customIconsTrigger) {
+            getCustomIconFile(context, app.bundleId).exists()
+        }
+        AlertDialog(
+            onDismissRequest = { activeAppMenu = null },
+            containerColor = SecondaryDark,
+            title = {
+                Text(app.name, color = Color.White, fontWeight = FontWeight.Bold)
+            },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    // Option 1: Custom Icon
+                    Button(
+                        onClick = {
+                            imagePickerLauncher.launch("image/*")
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = NeonIndigo),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth().height(50.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Edit, contentDescription = null, tint = Color.White)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("自定義圖標 (新增/更換)", color = Color.White, fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    // Option 2: Remove Custom Icon (if exists)
+                    if (hasCustomIcon) {
+                        Button(
+                            onClick = {
+                                removeCustomIcon(context, app.bundleId)
+                                customIconsTrigger++
+                                activeAppMenu = null
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = CardBackground),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth().height(50.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Refresh, contentDescription = null, tint = Color.White)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("還原預設圖標", color = Color.White, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+
+                    // Option 3: Remove from Dock
+                    Button(
+                        onClick = {
+                            appToRemove = app
+                            activeAppMenu = null
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = WarningRed),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth().height(50.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Delete, contentDescription = null, tint = Color.White)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("從我的 Dock 移除", color = Color.White, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { activeAppMenu = null }) {
+                    Text("Cancel", color = Color.LightGray)
+                }
+            }
+        )
+    }
+
+    // Image Cropper Dialog
+    if (selectedImageUriForCropping != null && bitmapToCrop != null) {
+        ImageCropperDialog(
+            bitmap = bitmapToCrop,
+            onDismiss = {
+                selectedImageUriForCropping = null
+                activeAppMenu = null
+            },
+            onConfirm = { croppedBitmap ->
+                activeAppMenu?.let { app ->
+                    saveCustomIcon(context, app.bundleId, croppedBitmap)
+                    customIconsTrigger++
+                }
+                selectedImageUriForCropping = null
+                activeAppMenu = null
             }
         )
     }
@@ -820,7 +1179,8 @@ fun NearbyControllerScreen(modifier: Modifier = Modifier) {
                                 FullScreenAppItem(
                                     app = app,
                                     size = finalSize,
-                                    onClick = { viewModel.openApp(app.bundleId) }
+                                    onClick = { viewModel.openApp(app.bundleId) },
+                                    customIconsTrigger = customIconsTrigger
                                 )
                             }
                         }
@@ -856,8 +1216,25 @@ fun MacGridAppItem(
     app: MacAppInfo,
     isLandscape: Boolean,
     onClick: () -> Unit,
-    onLongClick: () -> Unit
+    onLongClick: () -> Unit,
+    customIconsTrigger: Int
 ) {
+    val context = LocalContext.current
+    val customIconFile = remember(app.bundleId, customIconsTrigger) {
+        getCustomIconFile(context, app.bundleId)
+    }
+    val customIconBitmap = remember(customIconFile.absolutePath, customIconsTrigger) {
+        if (customIconFile.exists()) {
+            try {
+                android.graphics.BitmapFactory.decodeFile(customIconFile.absolutePath)
+            } catch (e: Exception) {
+                null
+            }
+        } else {
+            null
+        }
+    }
+
     Card(
         colors = CardDefaults.cardColors(containerColor = DockBgColor),
         shape = RoundedCornerShape(20.dp),
@@ -885,16 +1262,27 @@ fun MacGridAppItem(
                     .size(if (isLandscape) 55.dp else 65.dp)
                     .shadow(10.dp, RoundedCornerShape(16.dp))
                     .clip(RoundedCornerShape(16.dp))
-                    .background(brush = getAppGradient(app.name)),
+                    .background(
+                        brush = if (customIconBitmap != null) Brush.linearGradient(listOf(Color.Transparent, Color.Transparent)) else getAppGradient(app.name)
+                    ),
                 contentAlignment = Alignment.Center
             ) {
-                // Large styled single letter placeholder
-                Text(
-                    text = app.name.take(1).uppercase(),
-                    color = Color.White,
-                    fontSize = if (isLandscape) 26.sp else 30.sp,
-                    fontWeight = FontWeight.ExtraBold
-                )
+                if (customIconBitmap != null) {
+                    androidx.compose.foundation.Image(
+                        bitmap = customIconBitmap.asImageBitmap(),
+                        contentDescription = app.name,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                    )
+                } else {
+                    // Large styled single letter placeholder
+                    Text(
+                        text = app.name.take(1).uppercase(),
+                        color = Color.White,
+                        fontSize = if (isLandscape) 26.sp else 30.sp,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(10.dp))
@@ -915,8 +1303,25 @@ fun MacGridAppItem(
 fun FullScreenAppItem(
     app: MacAppInfo,
     size: Dp,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    customIconsTrigger: Int
 ) {
+    val context = LocalContext.current
+    val customIconFile = remember(app.bundleId, customIconsTrigger) {
+        getCustomIconFile(context, app.bundleId)
+    }
+    val customIconBitmap = remember(customIconFile.absolutePath, customIconsTrigger) {
+        if (customIconFile.exists()) {
+            try {
+                android.graphics.BitmapFactory.decodeFile(customIconFile.absolutePath)
+            } catch (e: Exception) {
+                null
+            }
+        } else {
+            null
+        }
+    }
+
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         shape = RoundedCornerShape(24.dp),
@@ -928,18 +1333,29 @@ fun FullScreenAppItem(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(brush = getAppGradient(app.name)),
+                .background(
+                    brush = if (customIconBitmap != null) Brush.linearGradient(listOf(Color.Transparent, Color.Transparent)) else getAppGradient(app.name)
+                ),
             contentAlignment = Alignment.Center
         ) {
-            // Large Single Letter - dynamically scale with icon size
-            val fontSize = (size.value * 0.35f).sp
-            Text(
-                text = app.name.take(1).uppercase(),
-                color = Color.White,
-                fontSize = fontSize,
-                fontWeight = FontWeight.ExtraBold,
-                modifier = Modifier.align(Alignment.Center)
-            )
+            if (customIconBitmap != null) {
+                androidx.compose.foundation.Image(
+                    bitmap = customIconBitmap.asImageBitmap(),
+                    contentDescription = app.name,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                )
+            } else {
+                // Large Single Letter - dynamically scale with icon size
+                val fontSize = (size.value * 0.35f).sp
+                Text(
+                    text = app.name.take(1).uppercase(),
+                    color = Color.White,
+                    fontSize = fontSize,
+                    fontWeight = FontWeight.ExtraBold,
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
             // App Name Overlay at bottom
             Box(
                 modifier = Modifier
