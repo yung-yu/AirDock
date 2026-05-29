@@ -23,6 +23,7 @@ class NearbyService: NSObject, ObservableObject, ConnectionManagerDelegate, Adve
     @Published var connectionStatus = "Disconnected"
     @Published var verificationCode: String? = nil
     @Published var connectedEndpoint: EndpointID? = nil
+    @Published var installedApps: [MacAppInfo] = []
     
     private var myUUID: String {
         if let uuid = UserDefaults.standard.string(forKey: "macdock_my_uuid") {
@@ -58,6 +59,18 @@ class NearbyService: NSObject, ObservableObject, ConnectionManagerDelegate, Adve
         
         advertiser = Advertiser(connectionManager: connectionManager)
         advertiser.delegate = self
+        
+        refreshInstalledApps()
+    }
+    
+    func refreshInstalledApps() {
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self = self else { return }
+            let apps = self.getInstalledApps()
+            DispatchQueue.main.async {
+                self.installedApps = apps
+            }
+        }
     }
     
     func start() {
@@ -120,7 +133,7 @@ class NearbyService: NSObject, ObservableObject, ConnectionManagerDelegate, Adve
     }
     
     func sendAppList(to endpointId: EndpointID) {
-        let appList = getInstalledApps()
+        let appList = installedApps.isEmpty ? getInstalledApps() : installedApps
         let payload = AppPayload(type: "APP_LIST", apps: appList, bundleId: nil, uuid: nil, token: nil)
         if let data = try? JSONEncoder().encode(payload) {
             _ = connectionManager.send(data, to: [endpointId])
