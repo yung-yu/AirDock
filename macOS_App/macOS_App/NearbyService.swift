@@ -49,6 +49,7 @@ class NearbyService: NSObject, ObservableObject, ConnectionManagerDelegate, Adve
     private var authorizedEndpoints: Set<EndpointID> = []
     private var pendingChallenges: [EndpointID: String] = [:]
     private var verificationTimers: [EndpointID: DispatchWorkItem] = [:]
+    private var autoAcceptedConnections: Set<EndpointID> = []
     
     private var connectionManager: ConnectionManager!
     private var advertiser: Advertiser!
@@ -196,6 +197,7 @@ class NearbyService: NSObject, ObservableObject, ConnectionManagerDelegate, Adve
             
             if let uuid = remoteUuid, self.pairedDevices[uuid] != nil {
                 // Already paired, auto-accept
+                self.autoAcceptedConnections.insert(endpointID)
                 verificationHandler(true)
             } else {
                 // New pairing: show verification code
@@ -247,6 +249,7 @@ class NearbyService: NSObject, ObservableObject, ConnectionManagerDelegate, Adve
                     self.authorizedEndpoints.remove(endpointID)
                     self.pendingConnections.removeValue(forKey: endpointID)
                     self.pendingChallenges.removeValue(forKey: endpointID)
+                    self.autoAcceptedConnections.remove(endpointID)
                     self.verificationTimers[endpointID]?.cancel()
                     self.verificationTimers.removeValue(forKey: endpointID)
                     self.start()
@@ -254,6 +257,7 @@ class NearbyService: NSObject, ObservableObject, ConnectionManagerDelegate, Adve
             case .rejected:
                 self.connectionStatus = "Rejected"
                 self.pendingChallenges.removeValue(forKey: endpointID)
+                self.autoAcceptedConnections.remove(endpointID)
                 self.verificationTimers[endpointID]?.cancel()
                 self.verificationTimers.removeValue(forKey: endpointID)
             @unknown default:
@@ -268,6 +272,11 @@ class NearbyService: NSObject, ObservableObject, ConnectionManagerDelegate, Adve
             guard let payload = try? JSONDecoder().decode(AppPayload.self, from: data) else { return }
             switch payload.type {
             case "PAIRING_REQUEST":
+                if self.autoAcceptedConnections.contains(endpointID) {
+                    print("Security Warning: PAIRING_REQUEST received on auto-accepted connection \(endpointID). Disconnecting.")
+                    self.connectionManager.disconnect(from: endpointID)
+                    break
+                }
                 if let clientUuid = payload.uuid {
                     let token = UUID().uuidString
                     var paired = self.pairedDevices
@@ -283,6 +292,11 @@ class NearbyService: NSObject, ObservableObject, ConnectionManagerDelegate, Adve
                     self.sendAppList(to: endpointID)
                 }
             case "VERIFY_PAIRING":
+                if !self.autoAcceptedConnections.contains(endpointID) {
+                    print("Security Warning: VERIFY_PAIRING received on manually pairing connection \(endpointID). Disconnecting.")
+                    self.connectionManager.disconnect(from: endpointID)
+                    break
+                }
                 if let clientUuid = payload.uuid, let clientResponse = payload.token, let androidNonce = payload.challenge {
                     guard let macNonce = self.pendingChallenges[endpointID],
                           let expectedToken = self.pairedDevices[clientUuid] else {
