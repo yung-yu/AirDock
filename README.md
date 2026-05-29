@@ -93,7 +93,7 @@ sequenceDiagram
 
 #### 方式 A：直接使用預編譯 DMG
 1. 進入 `macOS_App` 目錄。
-2. 雙擊打開 [Mac_Dock_Control.dmg](file:///Users/andy/AI_Project/Mac_dock/macOS_App/Mac_Dock_Control.dmg)。
+2. 雙擊打開 [AirDock.dmg](file:///Users/andy/AI_Project/Mac_dock/macOS_App/AirDock.dmg)。
 3. 將 **AirDock** 拖曳至您的 `/Applications` 資料夾。
 4. 啟動 App，點擊 **"Start Advertising"**。
 5. *注意：由於是點對點通訊，系統可能會提示需要授予藍牙與本地網絡權限。*
