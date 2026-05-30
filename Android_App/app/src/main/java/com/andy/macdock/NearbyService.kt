@@ -228,6 +228,16 @@ class NearbyService(
                 onStatusChanged("Verifying...")
                 stopDiscovery()
                 
+                // Start a global timeout for the verification/pairing process
+                verificationRunnable?.let { handler.removeCallbacks(it) }
+                val runnable = Runnable {
+                    if (connectedEndpointId == endpointId && !isFullyConnected) {
+                        disconnect()
+                    }
+                }
+                verificationRunnable = runnable
+                handler.postDelayed(runnable, 15000) // 15 seconds timeout for initial challenge/pairing
+                
                 val remoteUuid = connectingMacUuid
                 if (remoteUuid != null) {
                     val paired = getPairedDevices()
@@ -242,11 +252,12 @@ class NearbyService(
                 }
             } else {
                 onStatusChanged("Connection Failed: ${result.status.statusMessage}")
+                disconnect()
             }
         }
 
         override fun onDisconnected(endpointId: String) {
-            if (connectedEndpointId == endpointId) {
+            if (connectedEndpointId == endpointId || connectedEndpointId == null) {
                 connectedEndpointId = null
                 isFullyConnected = false
                 pendingAndroidNonce = null
@@ -260,6 +271,14 @@ class NearbyService(
     }
 
     fun startDiscovery() {
+        // Stop any active discovery first to prevent STATUS_ALREADY_DISCOVERING (8002)
+        try {
+            connectionsClient.stopDiscovery()
+            disconnect() // Clear any stuck connections before scanning
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
         onStatusChanged("Scanning...")
         val discoveryOptions = DiscoveryOptions.Builder()
             .setStrategy(Strategy.P2P_POINT_TO_POINT)
@@ -299,20 +318,30 @@ class NearbyService(
                 }
             },
             discoveryOptions
-        ).addOnFailureListener {
-            onStatusChanged("Discovery failed: ${it.localizedMessage}")
+        ).addOnFailureListener { e ->
+            if (e is com.google.android.gms.common.api.ApiException && e.statusCode == 8002) {
+                onStatusChanged("Scanning")
+            } else {
+                onStatusChanged("Discovery failed: ${e.localizedMessage}")
+            }
         }
     }
 
     fun stopDiscovery() {
-        connectionsClient.stopDiscovery()
+        try {
+            connectionsClient.stopDiscovery()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     fun disconnect() {
-        connectedEndpointId?.let {
-            connectionsClient.disconnectFromEndpoint(it)
-            connectedEndpointId = null
+        try {
+            connectionsClient.stopAllEndpoints()
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
+        connectedEndpointId = null
         isFullyConnected = false
         pendingAndroidNonce = null
         verificationRunnable?.let {
