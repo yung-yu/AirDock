@@ -60,12 +60,16 @@ class MainScreenViewModel(dataRepository: DataRepository) : ViewModel() {
     nearbyService?.stopDiscovery()
   }
 
-  fun disconnect() {
-    nearbyService?.disconnect()
+  fun switchSpace(direction: String) {
+    nearbyService?.switchSpace(direction)
   }
 
   fun openApp(bundleId: String) {
     nearbyService?.openApp(bundleId)
+  }
+
+  fun disconnect() {
+    nearbyService?.disconnect()
   }
 
   fun unpairAll() {

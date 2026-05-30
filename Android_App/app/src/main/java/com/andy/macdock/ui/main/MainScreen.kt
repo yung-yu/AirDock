@@ -27,6 +27,7 @@ import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
@@ -1132,6 +1133,23 @@ fun NearbyControllerScreen(modifier: Modifier = Modifier) {
                         colors = listOf(PrimaryDark, SecondaryDark)
                     )
                 )
+                .pointerInput(Unit) {
+                    var totalDrag = 0f
+                    detectHorizontalDragGestures(
+                        onDragStart = { totalDrag = 0f },
+                        onHorizontalDrag = { change, dragAmount ->
+                            change.consume()
+                            totalDrag += dragAmount
+                        },
+                        onDragEnd = {
+                            if (totalDrag > 50) {
+                                viewModel.switchSpace("left")
+                            } else if (totalDrag < -50) {
+                                viewModel.switchSpace("right")
+                            }
+                        }
+                    )
+                }
                 .padding(20.dp)
         ) {
             val filteredApps = remember(macApps, selectedApps) {

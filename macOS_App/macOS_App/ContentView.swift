@@ -204,6 +204,17 @@ struct ContentView: View {
         }
         .frame(minWidth: 720, minHeight: 480)
         .preferredColorScheme(.dark)
+        .onAppear {
+            checkAccessibilityPermission()
+        }
+    }
+    
+    private func checkAccessibilityPermission() {
+        let options: NSDictionary = [kAXTrustedCheckOptionPrompt.takeRetainedValue() as NSString: true]
+        let accessEnabled = AXIsProcessTrustedWithOptions(options)
+        if !accessEnabled {
+            print("Accessibility permission not granted. Please enable it in System Settings.")
+        }
     }
     
     private var filteredApps: [MacAppInfo] {

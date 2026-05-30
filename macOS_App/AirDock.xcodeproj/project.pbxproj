@@ -7,64 +7,64 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0B05AAE68985D90D8A0B08FF /* NearbyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A07F21732DFBFCC347023EA /* NearbyService.swift */; };
-		0EB62A28F0DF193E53DB739D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED76AE2EA8F90A9720787E43 /* ContentView.swift */; };
-		40734B942AE2898CC16D3C9F /* appstore.png in Resources */ = {isa = PBXBuildFile; fileRef = 3211537E7EE735BF2535524F /* appstore.png */; };
-		8B710E01817734E70B0E6232 /* playstore.png in Resources */ = {isa = PBXBuildFile; fileRef = 26AD54A9FB1B62C602AB3B80 /* playstore.png */; };
-		9298E5A5483F99E8A0130E90 /* NearbyConnections in Frameworks */ = {isa = PBXBuildFile; productRef = 27FDCEB5B41BFEC77C2346E4 /* NearbyConnections */; };
-		9EE1BB35FD2F084622AB194E /* application.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8479A301306E006E59ADE28 /* application.swift */; };
-		EB68A4BFD20C456EC5EEA42E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 930C6A26F0C23BF9067A7B28 /* Assets.xcassets */; };
+		10612B151F24E08FF93F5FE9 /* NearbyConnections in Frameworks */ = {isa = PBXBuildFile; productRef = 21769DEFFAEFAA2F2D9DA576 /* NearbyConnections */; };
+		18E7DF55203F2FD91765B9A2 /* playstore.png in Resources */ = {isa = PBXBuildFile; fileRef = 8814AFA0B604578B4AC2C794 /* playstore.png */; };
+		2B45A629647512672A9E1EA8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 48D1EBC91BDEEA03565A02B1 /* Assets.xcassets */; };
+		7A0B4B93CC3395AB7FF38B6B /* application.swift in Sources */ = {isa = PBXBuildFile; fileRef = 064E95DF8E3BDC84FA559BD9 /* application.swift */; };
+		95C19018CC049936439F1E3B /* NearbyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F78D77E951FDC97D8EED7FB /* NearbyService.swift */; };
+		CA4208FCFF46695E795D3120 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83005C388C4BE3818148B98E /* ContentView.swift */; };
+		D1899725F5C1581508C16FDD /* appstore.png in Resources */ = {isa = PBXBuildFile; fileRef = D0B23DACA4A68EE9A4204E6D /* appstore.png */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		26AD54A9FB1B62C602AB3B80 /* playstore.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = playstore.png; sourceTree = "<group>"; };
-		3211537E7EE735BF2535524F /* appstore.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = appstore.png; sourceTree = "<group>"; };
-		4A07F21732DFBFCC347023EA /* NearbyService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NearbyService.swift; sourceTree = "<group>"; };
-		8B74B044944C4559B027247A /* AirDock.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AirDock.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		930C6A26F0C23BF9067A7B28 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		B33D05D8617D74817C8F1D86 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
-		ED76AE2EA8F90A9720787E43 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		F8479A301306E006E59ADE28 /* application.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = application.swift; sourceTree = "<group>"; };
+		064E95DF8E3BDC84FA559BD9 /* application.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = application.swift; sourceTree = "<group>"; };
+		48D1EBC91BDEEA03565A02B1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		6F78D77E951FDC97D8EED7FB /* NearbyService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NearbyService.swift; sourceTree = "<group>"; };
+		83005C388C4BE3818148B98E /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		8814AFA0B604578B4AC2C794 /* playstore.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = playstore.png; sourceTree = "<group>"; };
+		A3D1FB27E80644043270028C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		D0B23DACA4A68EE9A4204E6D /* appstore.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = appstore.png; sourceTree = "<group>"; };
+		DE1E0C7EE53ABFA17564B436 /* AirDock.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AirDock.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		0A8BF61B60E8A36A3A0F4572 /* Frameworks */ = {
+		27B9663E1CC967525737ACEE /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				9298E5A5483F99E8A0130E90 /* NearbyConnections in Frameworks */,
+				10612B151F24E08FF93F5FE9 /* NearbyConnections in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		0AB758E07C92464C66A91454 = {
+		30311E713DFFCF971F27B868 /* macOS_App */ = {
 			isa = PBXGroup;
 			children = (
-				2C96C95625007A348F68E3F4 /* macOS_App */,
-				4B32B752AE64DAFEBF8B06F4 /* Products */,
-			);
-			sourceTree = "<group>";
-		};
-		2C96C95625007A348F68E3F4 /* macOS_App */ = {
-			isa = PBXGroup;
-			children = (
-				F8479A301306E006E59ADE28 /* application.swift */,
-				3211537E7EE735BF2535524F /* appstore.png */,
-				930C6A26F0C23BF9067A7B28 /* Assets.xcassets */,
-				ED76AE2EA8F90A9720787E43 /* ContentView.swift */,
-				B33D05D8617D74817C8F1D86 /* Info.plist */,
-				4A07F21732DFBFCC347023EA /* NearbyService.swift */,
-				26AD54A9FB1B62C602AB3B80 /* playstore.png */,
+				064E95DF8E3BDC84FA559BD9 /* application.swift */,
+				D0B23DACA4A68EE9A4204E6D /* appstore.png */,
+				48D1EBC91BDEEA03565A02B1 /* Assets.xcassets */,
+				83005C388C4BE3818148B98E /* ContentView.swift */,
+				A3D1FB27E80644043270028C /* Info.plist */,
+				6F78D77E951FDC97D8EED7FB /* NearbyService.swift */,
+				8814AFA0B604578B4AC2C794 /* playstore.png */,
 			);
 			path = macOS_App;
 			sourceTree = "<group>";
 		};
-		4B32B752AE64DAFEBF8B06F4 /* Products */ = {
+		46ACAD1B5CD315735162462A = {
 			isa = PBXGroup;
 			children = (
-				8B74B044944C4559B027247A /* AirDock.app */,
+				30311E713DFFCF971F27B868 /* macOS_App */,
+				D68EB0106A8455A717604C7F /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		D68EB0106A8455A717604C7F /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				DE1E0C7EE53ABFA17564B436 /* AirDock.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -72,13 +72,13 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		1C4B5A0BFC1FC24C45F2F20B /* AirDock */ = {
+		25A189F5AC57D84BFD2F9443 /* AirDock */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 6D7F084E0BF58F993065DD8C /* Build configuration list for PBXNativeTarget "AirDock" */;
+			buildConfigurationList = 8F8F8BD6631A25BD36C41F46 /* Build configuration list for PBXNativeTarget "AirDock" */;
 			buildPhases = (
-				6A48D5B2525695865DA85C01 /* Sources */,
-				2FA05D1B901A05F683DB6FB0 /* Resources */,
-				0A8BF61B60E8A36A3A0F4572 /* Frameworks */,
+				38A64C97E7733112F6EE8955 /* Sources */,
+				41E533BF1EAF1BFAB1FE754F /* Resources */,
+				27B9663E1CC967525737ACEE /* Frameworks */,
 			);
 			buildRules = (
 			);
@@ -86,93 +86,71 @@
 			);
 			name = AirDock;
 			packageProductDependencies = (
-				27FDCEB5B41BFEC77C2346E4 /* NearbyConnections */,
+				21769DEFFAEFAA2F2D9DA576 /* NearbyConnections */,
 			);
 			productName = AirDock;
-			productReference = 8B74B044944C4559B027247A /* AirDock.app */;
+			productReference = DE1E0C7EE53ABFA17564B436 /* AirDock.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		BBE86487FAED08DBE09BE819 /* Project object */ = {
+		0D351F5846062B223B5B7A90 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
-				TargetAttributes = {
-				};
 			};
-			buildConfigurationList = 77B4491D301E8F3274CC5219 /* Build configuration list for PBXProject "Mac_Dock_Control" */;
+			buildConfigurationList = 1A508EC9C6AE2F419E04C9F2 /* Build configuration list for PBXProject "AirDock" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				Base,
 				en,
 			);
-			mainGroup = 0AB758E07C92464C66A91454;
+			mainGroup = 46ACAD1B5CD315735162462A;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				7575EFBF96064F380D8FBB29 /* XCRemoteSwiftPackageReference "nearby" */,
+				30FE7D72984347EFF30EEE1E /* XCRemoteSwiftPackageReference "nearby" */,
 			);
 			preferredProjectObjectVersion = 77;
-			productRefGroup = 4B32B752AE64DAFEBF8B06F4 /* Products */;
+			productRefGroup = D68EB0106A8455A717604C7F /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				1C4B5A0BFC1FC24C45F2F20B /* AirDock */,
+				25A189F5AC57D84BFD2F9443 /* AirDock */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		2FA05D1B901A05F683DB6FB0 /* Resources */ = {
+		41E533BF1EAF1BFAB1FE754F /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				EB68A4BFD20C456EC5EEA42E /* Assets.xcassets in Resources */,
-				40734B942AE2898CC16D3C9F /* appstore.png in Resources */,
-				8B710E01817734E70B0E6232 /* playstore.png in Resources */,
+				2B45A629647512672A9E1EA8 /* Assets.xcassets in Resources */,
+				D1899725F5C1581508C16FDD /* appstore.png in Resources */,
+				18E7DF55203F2FD91765B9A2 /* playstore.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		6A48D5B2525695865DA85C01 /* Sources */ = {
+		38A64C97E7733112F6EE8955 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0EB62A28F0DF193E53DB739D /* ContentView.swift in Sources */,
-				0B05AAE68985D90D8A0B08FF /* NearbyService.swift in Sources */,
-				9EE1BB35FD2F084622AB194E /* application.swift in Sources */,
+				CA4208FCFF46695E795D3120 /* ContentView.swift in Sources */,
+				95C19018CC049936439F1E3B /* NearbyService.swift in Sources */,
+				7A0B4B93CC3395AB7FF38B6B /* application.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		65D4948BC54B8AE0545CF154 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGNING_ALLOWED = NO;
-				CODE_SIGNING_REQUIRED = NO;
-				CODE_SIGN_IDENTITY = "-";
-				COMBINE_HIDPI_IMAGES = YES;
-				ENABLE_APP_SANDBOX = NO;
-				INFOPLIST_FILE = macOS_App/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-				);
-				MACOSX_DEPLOYMENT_TARGET = 12.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.macdock;
-				SDKROOT = macosx;
-			};
-			name = Debug;
-		};
-		6B79193F65C890C88BED6BB5 /* Release */ = {
+		1A1173A8AEAB59D3EE7357AE /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -228,7 +206,7 @@
 			};
 			name = Release;
 		};
-		794F067613FC9963527FA42A /* Debug */ = {
+		2C63511E555AC7151EC31459 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -291,7 +269,7 @@
 			};
 			name = Debug;
 		};
-		890D26361F47D49B9FE0ABFB /* Release */ = {
+		36668CFD20917A123243EFBD /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -299,14 +277,42 @@
 				CODE_SIGNING_REQUIRED = NO;
 				CODE_SIGN_IDENTITY = "-";
 				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_APP_SANDBOX = NO;
 				INFOPLIST_FILE = macOS_App/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Air Dock";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 12.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.macdock;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.andy.macdock;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		98F977486D9005D0194B654F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_IDENTITY = "-";
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = NO;
+				INFOPLIST_FILE = macOS_App/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Air Dock";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 12.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.andy.macdock;
 				SDKROOT = macosx;
 			};
 			name = Release;
@@ -314,20 +320,20 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		6D7F084E0BF58F993065DD8C /* Build configuration list for PBXNativeTarget "AirDock" */ = {
+		1A508EC9C6AE2F419E04C9F2 /* Build configuration list for PBXProject "AirDock" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				65D4948BC54B8AE0545CF154 /* Debug */,
-				890D26361F47D49B9FE0ABFB /* Release */,
+				2C63511E555AC7151EC31459 /* Debug */,
+				1A1173A8AEAB59D3EE7357AE /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
-		77B4491D301E8F3274CC5219 /* Build configuration list for PBXProject "Mac_Dock_Control" */ = {
+		8F8F8BD6631A25BD36C41F46 /* Build configuration list for PBXNativeTarget "AirDock" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				794F067613FC9963527FA42A /* Debug */,
-				6B79193F65C890C88BED6BB5 /* Release */,
+				36668CFD20917A123243EFBD /* Debug */,
+				98F977486D9005D0194B654F /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
@@ -335,7 +341,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		7575EFBF96064F380D8FBB29 /* XCRemoteSwiftPackageReference "nearby" */ = {
+		30FE7D72984347EFF30EEE1E /* XCRemoteSwiftPackageReference "nearby" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/google/nearby";
 			requirement = {
@@ -346,12 +352,12 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		27FDCEB5B41BFEC77C2346E4 /* NearbyConnections */ = {
+		21769DEFFAEFAA2F2D9DA576 /* NearbyConnections */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 7575EFBF96064F380D8FBB29 /* XCRemoteSwiftPackageReference "nearby" */;
+			package = 30FE7D72984347EFF30EEE1E /* XCRemoteSwiftPackageReference "nearby" */;
 			productName = NearbyConnections;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
-	rootObject = BBE86487FAED08DBE09BE819 /* Project object */;
+	rootObject = 0D351F5846062B223B5B7A90 /* Project object */;
 }

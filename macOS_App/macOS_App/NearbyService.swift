@@ -13,12 +13,13 @@ struct MacAppInfo: Codable, Identifiable, Hashable {
 }
 
 struct AppPayload: Codable {
-    let type: String // "APP_LIST", "OPEN_APP", "PAIRING_REQUEST", "PAIRING_RESPONSE", "VERIFY_PAIRING", "CHALLENGE", "VERIFY_RESPONSE"
+    let type: String // "APP_LIST", "OPEN_APP", "PAIRING_REQUEST", "PAIRING_RESPONSE", "VERIFY_PAIRING", "CHALLENGE", "VERIFY_RESPONSE", "SWITCH_SPACE"
     let apps: [MacAppInfo]?
     let bundleId: String?
     let uuid: String?
     let token: String?
     let challenge: String?
+    let direction: String?
 }
 
 class NearbyService: NSObject, ObservableObject, ConnectionManagerDelegate, AdvertiserDelegate {
@@ -148,7 +149,7 @@ class NearbyService: NSObject, ObservableObject, ConnectionManagerDelegate, Adve
     
     func sendAppList(to endpointId: EndpointID) {
         let appList = installedApps
-        let payload = AppPayload(type: "APP_LIST", apps: appList, bundleId: nil, uuid: nil, token: nil, challenge: nil)
+        let payload = AppPayload(type: "APP_LIST", apps: appList, bundleId: nil, uuid: nil, token: nil, challenge: nil, direction: nil)
         if let data = try? JSONEncoder().encode(payload) {
             _ = connectionManager.send(data, to: [endpointId])
         }
@@ -238,7 +239,7 @@ class NearbyService: NSObject, ObservableObject, ConnectionManagerDelegate, Adve
                     self.verificationTimers[endpointID] = timer
                     DispatchQueue.main.asyncAfter(deadline: .now() + 10.0, execute: timer)
                     
-                    let challengePayload = AppPayload(type: "CHALLENGE", apps: nil, bundleId: nil, uuid: nil, token: macNonce, challenge: nil)
+                    let challengePayload = AppPayload(type: "CHALLENGE", apps: nil, bundleId: nil, uuid: nil, token: macNonce, challenge: nil, direction: nil)
                     if let data = try? JSONEncoder().encode(challengePayload) {
                         _ = self.connectionManager.send(data, to: [endpointID])
                     }
@@ -288,7 +289,7 @@ class NearbyService: NSObject, ObservableObject, ConnectionManagerDelegate, Adve
                     paired[clientUuid] = token
                     self.pairedDevices = paired
                     
-                    let response = AppPayload(type: "PAIRING_RESPONSE", apps: nil, bundleId: nil, uuid: self.myUUID, token: token, challenge: nil)
+                    let response = AppPayload(type: "PAIRING_RESPONSE", apps: nil, bundleId: nil, uuid: self.myUUID, token: token, challenge: nil, direction: nil)
                     if let responseData = try? JSONEncoder().encode(response) {
                         _ = self.connectionManager.send(responseData, to: [endpointID])
                     }
@@ -314,7 +315,7 @@ class NearbyService: NSObject, ObservableObject, ConnectionManagerDelegate, Adve
                         // Client is successfully verified!
                         // Now respond to client's challenge
                         let macResponse = self.sha256(androidNonce + expectedToken)
-                        let responsePayload = AppPayload(type: "VERIFY_RESPONSE", apps: nil, bundleId: nil, uuid: nil, token: macResponse, challenge: nil)
+                        let responsePayload = AppPayload(type: "VERIFY_RESPONSE", apps: nil, bundleId: nil, uuid: nil, token: macResponse, challenge: nil, direction: nil)
                         
                         // Clean up challenge and timer
                         self.pendingChallenges.removeValue(forKey: endpointID)
@@ -343,6 +344,12 @@ class NearbyService: NSObject, ObservableObject, ConnectionManagerDelegate, Adve
                 if self.authorizedEndpoints.contains(endpointID), let bundleId = payload.bundleId {
                     self.launchApp(bundleId: bundleId)
                 }
+            case "SWITCH_SPACE":
+                if !self.authorizedEndpoints.contains(endpointID) { return }
+                if let direction = payload.direction {
+                    print("Received SWITCH_SPACE command: \(direction)")
+                    self.switchSpace(direction: direction)
+                }
             default:
                 break
             }
@@ -353,4 +360,31 @@ class NearbyService: NSObject, ObservableObject, ConnectionManagerDelegate, Adve
     func connectionManager(_ connectionManager: ConnectionManager, didStartReceivingResourceWithID payloadID: PayloadID, from endpointID: EndpointID, at localURL: URL, withName name: String, cancellationToken token: CancellationToken) {}
     func connectionManager(_ connectionManager: ConnectionManager, didReceiveTransferUpdate update: TransferUpdate, from endpointID: EndpointID, forPayload payloadID: PayloadID) {}
     
+    private func switchSpace(direction: String) {
+        print("Executing switchSpace for direction: \(direction)")
+        let keyCode = (direction == "left") ? 123 : 124
+        
+        // 嘗試使用 AppleScript 呼叫 System Events，這能給出最詳細的錯誤訊息
+        let script = "tell application \"System Events\" to key code \(keyCode) using control down"
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+        process.arguments = ["-e", script]
+        
+        let pipe = Pipe()
+        process.standardError = pipe
+        process.standardOutput = pipe
+        
+        do {
+            try process.run()
+            process.waitUntilExit()
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            if let output = String(data: data, encoding: .utf8), !output.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                print("⚠️ 切換桌面錯誤或輸出: \(output)")
+            } else {
+                print("✅ 成功送出切換桌面指令 (\(direction))")
+            }
+        } catch {
+            print("❌ 執行 AppleScript 失敗: \(error)")
+        }
+    }
 }
