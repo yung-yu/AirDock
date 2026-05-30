@@ -1,6 +1,6 @@
-name: Mac_Dock_Control
+name: AirDock
 options:
-  bundleId: com.example.macdock
+  bundleId: com.andy.macdock
   deploymentTarget:
     macOS: "12.0"
 targets:
@@ -19,15 +19,15 @@ targets:
         NSLocalNetworkUsageDescription: "This app uses the local network to establish offline peer-to-peer connection."
         NSBonjourServices:
           - "_13c57208059cec59d12fa6e8._tcp"
-        CFBundleIdentifier: com.example.macdock
-        CFBundleDisplayName: "AirDock"
-        CFBundleName: "AirDock"
+        CFBundleIdentifier: com.andy.macdock
+        CFBundleDisplayName: "Air dock"
+        CFBundleName: "Air dock"
         LSMinimumSystemVersion: "12.0"
     settings:
       CODE_SIGN_IDENTITY: "-"
       CODE_SIGNING_REQUIRED: "NO"
       CODE_SIGNING_ALLOWED: "NO"
-      PRODUCT_BUNDLE_IDENTIFIER: com.example.macdock
+      PRODUCT_BUNDLE_IDENTIFIER: com.andy.macdock
       MACOSX_DEPLOYMENT_TARGET: "12.0"
       ENABLE_APP_SANDBOX: "NO"
       ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon

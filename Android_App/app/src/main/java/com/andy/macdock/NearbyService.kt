@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import com.google.android.gms.nearby.Nearby
 import com.google.android.gms.nearby.connection.*
 import org.json.JSONObject
@@ -361,6 +362,22 @@ class NearbyService(
         val endpointId = connectedEndpointId ?: return
         val bytes = jsonStr.toByteArray(Charsets.UTF_8)
         connectionsClient.sendPayload(endpointId, Payload.fromBytes(bytes))
+    }
+
+    fun switchSpace(direction: String) {
+        val endpointId = connectedEndpointId ?: return
+        try {
+            val json = JSONObject().apply {
+                put("type", "SWITCH_SPACE")
+                put("direction", direction)
+            }
+            val bytes = json.toString().toByteArray(Charsets.UTF_8)
+            connectionsClient.sendPayload(endpointId, Payload.fromBytes(bytes))
+            Log.d("NearbyService", "Sent SWITCH_SPACE command: $direction")
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Log.e("NearbyService", "Failed to send SWITCH_SPACE command", e)
+        }
     }
 
     fun unpairAll() {
