@@ -273,7 +273,12 @@ class NearbyService: NSObject, ObservableObject, ConnectionManagerDelegate, Adve
             switch payload.type {
             case "PAIRING_REQUEST":
                 if self.autoAcceptedConnections.contains(endpointID) {
-                    print("Security Warning: PAIRING_REQUEST received on auto-accepted connection \(endpointID). Disconnecting.")
+                    print("Security Warning: PAIRING_REQUEST received on auto-accepted connection \(endpointID). Disconnecting and unpairing to allow re-pairing.")
+                    if let clientUuid = payload.uuid {
+                        var paired = self.pairedDevices
+                        paired.removeValue(forKey: clientUuid)
+                        self.pairedDevices = paired
+                    }
                     self.connectionManager.disconnect(from: endpointID)
                     break
                 }
