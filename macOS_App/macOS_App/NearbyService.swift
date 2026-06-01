@@ -13,7 +13,7 @@ struct MacAppInfo: Codable, Identifiable, Hashable {
 }
 
 struct AppPayload: Codable {
-    let type: String // "APP_LIST", "OPEN_APP", "PAIRING_REQUEST", "PAIRING_RESPONSE", "VERIFY_PAIRING", "CHALLENGE", "VERIFY_RESPONSE", "SWITCH_SPACE"
+    let type: String // "APP_LIST", "OPEN_APP", "PAIRING_REQUEST", "PAIRING_RESPONSE", "VERIFY_PAIRING", "CHALLENGE", "VERIFY_RESPONSE", "SWITCH_SPACE", "KILL_APP"
     let apps: [MacAppInfo]?
     let bundleId: String?
     let uuid: String?
@@ -349,6 +349,16 @@ class NearbyService: NSObject, ObservableObject, ConnectionManagerDelegate, Adve
                 if let direction = payload.direction {
                     print("Received SWITCH_SPACE command: \(direction)")
                     self.switchSpace(direction: direction)
+                }
+            case "KILL_APP":
+                if self.authorizedEndpoints.contains(endpointID), let bundleId = payload.bundleId {
+                    print("Received KILL_APP command for bundleId: \(bundleId)")
+                    DispatchQueue.main.async {
+                        let apps = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId)
+                        for app in apps {
+                            app.terminate()
+                        }
+                    }
                 }
             default:
                 break

@@ -68,6 +68,10 @@ class MainScreenViewModel(dataRepository: DataRepository) : ViewModel() {
     nearbyService?.openApp(bundleId)
   }
 
+  fun killMacApp(bundleId: String) {
+    nearbyService?.killMacApp(bundleId)
+  }
+
   fun disconnect() {
     nearbyService?.disconnect()
   }

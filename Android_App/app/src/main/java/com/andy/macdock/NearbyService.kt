@@ -364,6 +364,22 @@ class NearbyService(
         connectionsClient.sendPayload(endpointId, Payload.fromBytes(bytes))
     }
 
+    fun killMacApp(bundleId: String) {
+        val endpointId = connectedEndpointId ?: return
+        try {
+            val json = JSONObject().apply {
+                put("type", "KILL_APP")
+                put("bundleId", bundleId)
+            }
+            val bytes = json.toString().toByteArray(Charsets.UTF_8)
+            connectionsClient.sendPayload(endpointId, Payload.fromBytes(bytes))
+            Log.d("NearbyService", "Sent KILL_APP command")
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Log.e("NearbyService", "Failed to send KILL_APP command", e)
+        }
+    }
+
     fun switchSpace(direction: String) {
         val endpointId = connectedEndpointId ?: return
         try {

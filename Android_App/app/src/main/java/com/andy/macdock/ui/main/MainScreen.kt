@@ -13,6 +13,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -29,6 +30,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -1213,6 +1215,7 @@ fun NearbyControllerScreen(modifier: Modifier = Modifier) {
                                     app = app,
                                     size = finalSize,
                                     onClick = { viewModel.openApp(app.bundleId) },
+                                    onLongClick = { viewModel.killMacApp(app.bundleId) },
                                     customIconsTrigger = customIconsTrigger
                                 )
                             }
@@ -1337,9 +1340,13 @@ fun FullScreenAppItem(
     app: MacAppInfo,
     size: Dp,
     onClick: () -> Unit,
+    onLongClick: () -> Unit,
     customIconsTrigger: Int
 ) {
     val context = LocalContext.current
+    val view = androidx.compose.ui.platform.LocalView.current
+    var isPressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(if (isPressed) 0.9f else 1f, label = "scale")
     val customIconFile = remember(app.bundleId, customIconsTrigger) {
         getCustomIconFile(context, app.bundleId)
     }
@@ -1360,7 +1367,21 @@ fun FullScreenAppItem(
         shape = RoundedCornerShape(24.dp),
         modifier = Modifier
             .size(size)
-            .clickable(onClick = onClick)
+            .graphicsLayer(scaleX = scale, scaleY = scale)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = {
+                        isPressed = true
+                        tryAwaitRelease()
+                        isPressed = false
+                    },
+                    onTap = { onClick() },
+                    onLongPress = { 
+                        view.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
+                        onLongClick() 
+                    }
+                )
+            }
             .border(0.5.dp, DockBorderColor, RoundedCornerShape(24.dp))
     ) {
         Box(
