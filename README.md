@@ -17,6 +17,7 @@
 *   **🖥️ 毛玻璃極簡 Dock 介面**：Android 端擁有精美的毛玻璃風格 Dock，支援橫向滾動與動畫效果，還原 macOS 原生 Dock 的視覺衝擊。
 *   **📌 快捷 Dock 客製化**：使用者可以在 Android 端長按或點選管理按鈕，自由挑選需要釘選在 Dock 的 macOS 應用程式。
 *   **🚀 遠端一鍵啟動**：點擊 Android Dock 上的圖示，Mac 端會立刻以原生 `NSWorkspace` 的 API 快速將應用程式喚醒並呈現在最上層。
+*   **🛑 遠端精準關閉**：在 Android 端全螢幕模式下，長按 App 圖示即可精準關閉對應的 Mac 應用程式，並伴隨 Haptic 震動與圖示微縮放視覺回饋。
 
 ---
 
@@ -80,9 +81,11 @@ sequenceDiagram
     Note over M: 驗證通過，加入 authorizedEndpoints
     M->>A: {"type": "APP_LIST", "apps": [{"name": "Safari", "bundleId": "com.apple.Safari"}, ...]}
     
-    Note over A, M: 遠端啟動應用程式
+    Note over A, M: 遠端啟動與關閉應用程式
     A->>M: {"type": "OPEN_APP", "bundleId": "com.apple.Safari"}
     Note over M: 調用 NSWorkspace 啟動 App
+    A->>M: {"type": "KILL_APP", "bundleId": "com.apple.Safari"}
+    Note over M: 調用 NSRunningApplication 關閉 App
 ```
 
 ---
