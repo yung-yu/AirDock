@@ -424,11 +424,14 @@ class NearbyService: NSObject, ObservableObject, ConnectionManagerDelegate, Adve
         }
     }
     
+    private var virtualCursorLocation: CGPoint? = nil
+
     private func clearTrackpadQueue() {
         trackpadSerialQueue.async { [weak self] in
             guard let self = self else { return }
             self.pendingTrackpadEvents.removeAll()
-            print("🧹 Cleared trackpad event queue")
+            self.virtualCursorLocation = nil
+            print("🧹 Cleared trackpad event queue and reset virtual location")
         }
     }
     
@@ -444,16 +447,20 @@ class NearbyService: NSObject, ObservableObject, ConnectionManagerDelegate, Adve
     }
 
     private func handleTrackpadEvent(action: String, dx: Float?, dy: Float?, button: String?) {
-        let currentLocation = CGEvent(source: nil)?.location ?? .zero
         print("🖱️ handleTrackpadEvent: \(action), dx: \(dx ?? 0), dy: \(dy ?? 0)")
         
         if action == "move" {
             guard let dx = dx, let dy = dy else { return }
-            let newLocation = CGPoint(x: currentLocation.x + CGFloat(dx), y: currentLocation.y + CGFloat(dy))
+            if virtualCursorLocation == nil {
+                virtualCursorLocation = CGEvent(source: nil)?.location ?? .zero
+            }
+            let newLocation = CGPoint(x: (virtualCursorLocation?.x ?? 0) + CGFloat(dx), y: (virtualCursorLocation?.y ?? 0) + CGFloat(dy))
+            virtualCursorLocation = newLocation
             if let moveEvent = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: newLocation, mouseButton: .left) {
                 moveEvent.post(tap: .cghidEventTap)
             }
         } else if action == "click" {
+            let currentLocation = CGEvent(source: nil)?.location ?? .zero
             if let mouseDownEvent = CGEvent(mouseEventSource: nil, mouseType: .leftMouseDown, mouseCursorPosition: currentLocation, mouseButton: .left),
                let mouseUpEvent = CGEvent(mouseEventSource: nil, mouseType: .leftMouseUp, mouseCursorPosition: currentLocation, mouseButton: .left) {
                 mouseDownEvent.post(tap: .cghidEventTap)
