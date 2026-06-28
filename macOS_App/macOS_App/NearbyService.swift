@@ -366,7 +366,11 @@ class NearbyService: NSObject, ObservableObject, ConnectionManagerDelegate, Adve
                 }
             case "TRACKPAD":
                 if self.authorizedEndpoints.contains(endpointID), let action = payload.action {
-                    self.handleTrackpadEvent(action: action, dx: payload.dx, dy: payload.dy, button: payload.button)
+                    if action == "stop" || action == "clear" {
+                        self.clearTrackpadQueue()
+                    } else {
+                        self.enqueueTrackpadEvent(payload)
+                    }
                 }
             default:
                 break
@@ -404,6 +408,39 @@ class NearbyService: NSObject, ObservableObject, ConnectionManagerDelegate, Adve
         } catch {
             print("❌ 執行 AppleScript 失敗: \(error)")
         }
+    }
+
+    private let trackpadSerialQueue = DispatchQueue(label: "com.andy.macdock.trackpad", qos: .userInteractive)
+    private var pendingTrackpadEvents: [AppPayload] = []
+    private var isProcessingTrackpad = false
+    
+    private func enqueueTrackpadEvent(_ payload: AppPayload) {
+        trackpadSerialQueue.async { [weak self] in
+            guard let self = self else { return }
+            self.pendingTrackpadEvents.append(payload)
+            if !self.isProcessingTrackpad {
+                self.processTrackpadQueue()
+            }
+        }
+    }
+    
+    private func clearTrackpadQueue() {
+        trackpadSerialQueue.async { [weak self] in
+            guard let self = self else { return }
+            self.pendingTrackpadEvents.removeAll()
+            print("🧹 Cleared trackpad event queue")
+        }
+    }
+    
+    private func processTrackpadQueue() {
+        self.isProcessingTrackpad = true
+        while !self.pendingTrackpadEvents.isEmpty {
+            let payload = self.pendingTrackpadEvents.removeFirst()
+            if let action = payload.action {
+                self.handleTrackpadEvent(action: action, dx: payload.dx, dy: payload.dy, button: payload.button)
+            }
+        }
+        self.isProcessingTrackpad = false
     }
 
     private func handleTrackpadEvent(action: String, dx: Float?, dy: Float?, button: String?) {

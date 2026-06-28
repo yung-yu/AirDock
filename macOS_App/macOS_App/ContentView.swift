@@ -118,9 +118,29 @@ struct ContentView: View {
                 Spacer()
                 
                 // Footer
-                Text("Version 1.0.0")
-                    .font(.caption)
-                    .foregroundColor(.gray)
+                HStack {
+                    Text("Version 1.0.0")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        NSApplication.shared.terminate(nil)
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "power")
+                            Text("Quit")
+                        }
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(.red.opacity(0.8))
+                        .padding(.vertical, 4)
+                        .padding(.horizontal, 8)
+                        .background(Color.red.opacity(0.1))
+                        .cornerRadius(6)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
             }
             .padding(24)
             .frame(width: 320)

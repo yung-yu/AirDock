@@ -445,9 +445,18 @@ fun NearbyControllerScreen(modifier: Modifier = Modifier) {
         mutableStateOf(sharedPrefs.getStringSet("macdock_selected_apps", emptySet()) ?: emptySet())
     }
     
+    var isGestureSplitEnabled by remember {
+        mutableStateOf(sharedPrefs.getBoolean("macdock_gesture_split", false))
+    }
+    
     fun updateSelectedApps(newSet: Set<String>) {
         selectedApps = newSet
         sharedPrefs.edit().putStringSet("macdock_selected_apps", newSet).apply()
+    }
+
+    fun updateGestureSplit(enabled: Boolean) {
+        isGestureSplitEnabled = enabled
+        sharedPrefs.edit().putBoolean("macdock_gesture_split", enabled).apply()
     }
 
     var showUnpairConfirmation by remember { mutableStateOf(false) }
@@ -749,13 +758,58 @@ fun NearbyControllerScreen(modifier: Modifier = Modifier) {
                 modifier = Modifier.weight(1f)
             ) {
                 Column(modifier = Modifier.fillMaxSize()) {
+                    // Checkbox/Switch for Gesture Split Area
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 12.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(DockBgColor)
+                            .border(0.5.dp, DockBorderColor, RoundedCornerShape(12.dp))
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.TouchApp,
+                                contentDescription = "Gesture Split",
+                                tint = NeonCyan,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = "Split Gesture Area",
+                                    color = Color.White,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "Split fullscreen view into App & Gesture Area (3:1)",
+                                    color = Color.LightGray,
+                                    fontSize = 11.sp
+                                )
+                            }
+                        }
+                        Checkbox(
+                            checked = isGestureSplitEnabled,
+                            onCheckedChange = { updateGestureSplit(it) },
+                            colors = CheckboxDefaults.colors(
+                                checkedColor = NeonCyan,
+                                uncheckedColor = Color.Gray,
+                                checkmarkColor = Color.Black
+                            )
+                        )
+                    }
+
                     val filteredApps = remember(macApps, selectedApps) {
                         macApps.filter { it.bundleId in selectedApps }
                     }
 
                     if (filteredApps.isEmpty()) {
                         Box(
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier.fillMaxSize().weight(1f),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
@@ -777,7 +831,7 @@ fun NearbyControllerScreen(modifier: Modifier = Modifier) {
                                 columns = GridCells.Fixed(2),
                                 verticalArrangement = Arrangement.spacedBy(12.dp),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                modifier = Modifier.fillMaxSize()
+                                modifier = Modifier.fillMaxSize().weight(1f)
                             ) {
                                  items(filteredApps) { app ->
                                      MacGridAppItem(
@@ -795,7 +849,7 @@ fun NearbyControllerScreen(modifier: Modifier = Modifier) {
                                 rows = GridCells.Fixed(2),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 verticalArrangement = Arrangement.spacedBy(12.dp),
-                                modifier = Modifier.fillMaxSize()
+                                modifier = Modifier.fillMaxSize().weight(1f)
                             ) {
                                 items(filteredApps) { app ->
                                     MacGridAppItem(
@@ -1136,120 +1190,87 @@ fun NearbyControllerScreen(modifier: Modifier = Modifier) {
                         colors = listOf(PrimaryDark, SecondaryDark)
                     )
                 )
-                .pointerInput(Unit) {
-                    detectTapGestures(
-                        onTap = {
-                            viewModel.sendTrackpadEvent("click")
-                        }
-                    )
-                }
-                .pointerInput(Unit) {
-                    var lastSendTime = 0L
-                    var accumulatedDx = 0f
-                    var accumulatedDy = 0f
-                    detectDragGestures(
-                        onDrag = { change, dragAmount ->
-                            change.consume()
-                            accumulatedDx += dragAmount.x
-                            accumulatedDy += dragAmount.y
-                            val currentTime = android.os.SystemClock.elapsedRealtime()
-                            if (currentTime - lastSendTime >= 16L) {
-                                viewModel.sendTrackpadEvent("move", accumulatedDx, accumulatedDy)
-                                accumulatedDx = 0f
-                                accumulatedDy = 0f
-                                lastSendTime = currentTime
-                            }
-                        }
-                    )
-                }
-                .padding(20.dp)
         ) {
-            val filteredApps = remember(macApps, selectedApps) {
-                macApps.filter { it.bundleId in selectedApps }
-            }
-
-            if (filteredApps.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Your Dock is empty. Please add apps first.",
-                        color = Color.LightGray,
-                        fontSize = 16.sp
-                    )
+            if (isGestureSplitEnabled) {
+                if (isPortrait) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp)
+                    ) {
+                        // APP Area (3/4)
+                        Box(
+                            modifier = Modifier
+                                .weight(3f)
+                                .fillMaxWidth()
+                        ) {
+                            FullScreenAppGrid(
+                                macApps = macApps,
+                                selectedApps = selectedApps,
+                                customIconsTrigger = customIconsTrigger,
+                                viewModel = viewModel,
+                                onCloseClick = { isFullScreenViewOpen = false }
+                            )
+                        }
+                        
+                        Spacer(modifier = Modifier.height(12.dp))
+                        
+                        // Gesture Area (1/4)
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth()
+                        ) {
+                            FullScreenGestureArea(
+                                viewModel = viewModel,
+                                neonCyan = NeonCyan
+                            )
+                        }
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp)
+                    ) {
+                        // APP Area (3/4)
+                        Box(
+                            modifier = Modifier
+                                .weight(3f)
+                                .fillMaxHeight()
+                        ) {
+                            FullScreenAppGrid(
+                                macApps = macApps,
+                                selectedApps = selectedApps,
+                                customIconsTrigger = customIconsTrigger,
+                                viewModel = viewModel,
+                                onCloseClick = { isFullScreenViewOpen = false }
+                            )
+                        }
+                        
+                        Spacer(modifier = Modifier.width(12.dp))
+                        
+                        // Gesture Area (1/4)
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                        ) {
+                            FullScreenGestureArea(
+                                viewModel = viewModel,
+                                neonCyan = NeonCyan
+                            )
+                        }
+                    }
                 }
             } else {
-                BoxWithConstraints(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .displayCutoutPadding() // Handles phone screen cutouts (notch/camera hole)
-                ) {
-                    val W = maxWidth
-                    val H = maxHeight
-                    val N = filteredApps.size
-                    val spacing = 16.dp
-
-                    // Find C that maximizes size = min(sizeW, sizeH)
-                    var bestC = 1
-                    var bestSize = 0.dp
-                    
-                    for (c in 1..N) {
-                        val r = kotlin.math.ceil(N.toFloat() / c).toInt()
-                        val sizeW = (W - spacing * (c - 1)) / c
-                        val sizeH = (H - spacing * (r - 1)) / r
-                        val size = if (sizeW < sizeH) sizeW else sizeH
-                        if (size > bestSize) {
-                            bestSize = size
-                            bestC = c
-                        }
-                    }
-
-                    // Cap size at 180.dp so icons don't look awkwardly huge if there's only 1 or 2
-                    val finalSize = if (bestSize > 180.dp) 180.dp else bestSize
-
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(bestC),
-                            verticalArrangement = Arrangement.spacedBy(spacing),
-                            horizontalArrangement = Arrangement.spacedBy(spacing),
-                            modifier = Modifier
-                                .width(finalSize * bestC + spacing * (bestC - 1))
-                                .wrapContentHeight() // Dynamic height calculation
-                        ) {
-                            items(filteredApps) { app ->
-                                FullScreenAppItem(
-                                    app = app,
-                                    size = finalSize,
-                                    onClick = { viewModel.openApp(app.bundleId) },
-                                    onLongClick = { viewModel.killMacApp(app.bundleId) },
-                                    customIconsTrigger = customIconsTrigger
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Subtle floating close button placed safely in the top-right corner, considering displayCutout
-            IconButton(
-                onClick = { isFullScreenViewOpen = false },
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .displayCutoutPadding()
-                    .size(36.dp)
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(Color.Black.copy(alpha = 0.4f))
-                    .border(0.5.dp, DockBorderColor, RoundedCornerShape(18.dp))
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "Exit Full Screen",
-                    tint = Color.White,
-                    modifier = Modifier.size(18.dp)
+                // Non-split View (Whole screen is gesture detector, apps grid overlayed)
+                FullScreenNonSplitView(
+                    macApps = macApps,
+                    selectedApps = selectedApps,
+                    customIconsTrigger = customIconsTrigger,
+                    viewModel = viewModel,
+                    onCloseClick = { isFullScreenViewOpen = false }
                 )
             }
         }
@@ -1467,4 +1488,232 @@ fun Context.findActivity(): Activity? {
         context = context.baseContext
     }
     return null
+}
+
+@Composable
+fun FullScreenAppGrid(
+    macApps: List<MacAppInfo>,
+    selectedApps: Set<String>,
+    customIconsTrigger: Int,
+    viewModel: MainScreenViewModel,
+    onCloseClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val filteredApps = remember(macApps, selectedApps) {
+        macApps.filter { it.bundleId in selectedApps }
+    }
+
+    Box(modifier = modifier.fillMaxSize()) {
+        if (filteredApps.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Your Dock is empty. Please add apps first.",
+                    color = Color.LightGray,
+                    fontSize = 16.sp
+                )
+            }
+        } else {
+            BoxWithConstraints(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .displayCutoutPadding()
+            ) {
+                val W = maxWidth
+                val H = maxHeight
+                val N = filteredApps.size
+                val spacing = 16.dp
+
+                var bestC = 1
+                var bestSize = 0.dp
+                
+                for (c in 1..N) {
+                    val r = kotlin.math.ceil(N.toFloat() / c).toInt()
+                    val sizeW = (W - spacing * (c - 1)) / c
+                    val sizeH = (H - spacing * (r - 1)) / r
+                    val size = if (sizeW < sizeH) sizeW else sizeH
+                    if (size > bestSize) {
+                        bestSize = size
+                        bestC = c
+                    }
+                }
+
+                val finalSize = if (bestSize > 180.dp) 180.dp else bestSize
+
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(bestC),
+                        verticalArrangement = Arrangement.spacedBy(spacing),
+                        horizontalArrangement = Arrangement.spacedBy(spacing),
+                        modifier = Modifier
+                            .width(finalSize * bestC + spacing * (bestC - 1))
+                            .wrapContentHeight()
+                    ) {
+                        items(filteredApps) { app ->
+                            FullScreenAppItem(
+                                app = app,
+                                size = finalSize,
+                                onClick = { viewModel.openApp(app.bundleId) },
+                                onLongClick = { viewModel.killMacApp(app.bundleId) },
+                                customIconsTrigger = customIconsTrigger
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Floating Close Button (floating inside App Area)
+        IconButton(
+            onClick = onCloseClick,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .displayCutoutPadding()
+                .size(36.dp)
+                .clip(RoundedCornerShape(18.dp))
+                .background(Color.Black.copy(alpha = 0.4f))
+                .border(0.5.dp, DockBorderColor, RoundedCornerShape(18.dp))
+        ) {
+            Icon(
+                imageVector = Icons.Default.Close,
+                contentDescription = "Exit Full Screen",
+                tint = Color.White,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun FullScreenGestureArea(
+    viewModel: MainScreenViewModel,
+    neonCyan: Color,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(
+                color = Color.White.copy(alpha = 0.05f),
+                shape = RoundedCornerShape(16.dp)
+            )
+            .border(
+                width = 0.5.dp,
+                color = DockBorderColor,
+                shape = RoundedCornerShape(16.dp)
+            )
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onTap = {
+                        viewModel.sendTrackpadEvent("click")
+                    }
+                )
+            }
+            .pointerInput(Unit) {
+                var lastSendTime = 0L
+                var accumulatedDx = 0f
+                var accumulatedDy = 0f
+                detectDragGestures(
+                    onDragEnd = {
+                        viewModel.sendTrackpadEvent("stop")
+                    },
+                    onDragCancel = {
+                        viewModel.sendTrackpadEvent("stop")
+                    },
+                    onDrag = { change, dragAmount ->
+                        change.consume()
+                        accumulatedDx += dragAmount.x
+                        accumulatedDy += dragAmount.y
+                        val currentTime = android.os.SystemClock.elapsedRealtime()
+                        if (currentTime - lastSendTime >= 16L) {
+                            viewModel.sendTrackpadEvent("move", accumulatedDx, accumulatedDy)
+                            accumulatedDx = 0f
+                            accumulatedDy = 0f
+                            lastSendTime = currentTime
+                        }
+                    }
+                )
+            }
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.TouchApp,
+                contentDescription = "Trackpad",
+                tint = neonCyan.copy(alpha = 0.7f),
+                modifier = Modifier.size(28.dp)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Gesture Area",
+                color = Color.White.copy(alpha = 0.5f),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium
+            )
+        }
+    }
+}
+
+@Composable
+fun FullScreenNonSplitView(
+    macApps: List<MacAppInfo>,
+    selectedApps: Set<String>,
+    customIconsTrigger: Int,
+    viewModel: MainScreenViewModel,
+    onCloseClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onTap = {
+                        viewModel.sendTrackpadEvent("click")
+                    }
+                )
+            }
+            .pointerInput(Unit) {
+                var lastSendTime = 0L
+                var accumulatedDx = 0f
+                var accumulatedDy = 0f
+                detectDragGestures(
+                    onDragEnd = {
+                        viewModel.sendTrackpadEvent("stop")
+                    },
+                    onDragCancel = {
+                        viewModel.sendTrackpadEvent("stop")
+                    },
+                    onDrag = { change, dragAmount ->
+                        change.consume()
+                        accumulatedDx += dragAmount.x
+                        accumulatedDy += dragAmount.y
+                        val currentTime = android.os.SystemClock.elapsedRealtime()
+                        if (currentTime - lastSendTime >= 16L) {
+                            viewModel.sendTrackpadEvent("move", accumulatedDx, accumulatedDy)
+                            accumulatedDx = 0f
+                            accumulatedDy = 0f
+                            lastSendTime = currentTime
+                        }
+                    }
+                )
+            }
+            .padding(20.dp)
+    ) {
+        FullScreenAppGrid(
+            macApps = macApps,
+            selectedApps = selectedApps,
+            customIconsTrigger = customIconsTrigger,
+            viewModel = viewModel,
+            onCloseClick = onCloseClick
+        )
+    }
 }
