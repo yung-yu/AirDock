@@ -12,6 +12,7 @@ derived_data/
 xcuserdata/
 macOS_App/DerivedData/
 macOS_App/build/
+macOS_App/dist/
 
 # Android build and Gradle files
 .gradle/

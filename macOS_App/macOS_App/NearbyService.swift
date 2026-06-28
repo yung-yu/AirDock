@@ -411,39 +411,69 @@ class NearbyService: NSObject, ObservableObject, ConnectionManagerDelegate, Adve
     }
 
     private let trackpadSerialQueue = DispatchQueue(label: "com.andy.macdock.trackpad", qos: .userInteractive)
+    private let queueLock = NSLock()
     private var pendingTrackpadEvents: [AppPayload] = []
     private var isProcessingTrackpad = false
-    
+    private var virtualCursorLocation: CGPoint? = nil
+
     private func enqueueTrackpadEvent(_ payload: AppPayload) {
-        trackpadSerialQueue.async { [weak self] in
-            guard let self = self else { return }
-            self.pendingTrackpadEvents.append(payload)
-            if !self.isProcessingTrackpad {
+        queueLock.lock()
+        self.pendingTrackpadEvents.append(payload)
+        let shouldDispatch = !self.isProcessingTrackpad
+        if shouldDispatch {
+            self.isProcessingTrackpad = true
+        }
+        queueLock.unlock()
+        
+        if shouldDispatch {
+            trackpadSerialQueue.async { [weak self] in
+                guard let self = self else { return }
                 self.processTrackpadQueue()
             }
         }
     }
     
-    private var virtualCursorLocation: CGPoint? = nil
-
     private func clearTrackpadQueue() {
-        trackpadSerialQueue.async { [weak self] in
-            guard let self = self else { return }
-            self.pendingTrackpadEvents.removeAll()
-            self.virtualCursorLocation = nil
-            print("🧹 Cleared trackpad event queue and reset virtual location")
-        }
+        queueLock.lock()
+        self.pendingTrackpadEvents.removeAll()
+        self.virtualCursorLocation = nil
+        queueLock.unlock()
+        print("🧹 Cleared trackpad event queue and reset virtual location")
     }
     
     private func processTrackpadQueue() {
-        self.isProcessingTrackpad = true
-        while !self.pendingTrackpadEvents.isEmpty {
+        while true {
+            queueLock.lock()
+            if self.pendingTrackpadEvents.isEmpty {
+                self.isProcessingTrackpad = false
+                queueLock.unlock()
+                break
+            }
             let payload = self.pendingTrackpadEvents.removeFirst()
+            queueLock.unlock()
+            
             if let action = payload.action {
                 self.handleTrackpadEvent(action: action, dx: payload.dx, dy: payload.dy, button: payload.button)
             }
         }
-        self.isProcessingTrackpad = false
+    }
+
+    private func getScreenBoundingBox() -> CGRect {
+        let screens = NSScreen.screens
+        guard !screens.isEmpty else {
+            return CGRect(x: 0, y: 0, width: 1920, height: 1080)
+        }
+        
+        let primaryHeight = screens[0].frame.height
+        var unionFrame = CGRect.null
+        for screen in screens {
+            unionFrame = unionFrame.union(screen.frame)
+        }
+        
+        let cgMinX = unionFrame.origin.x
+        let cgMinY = primaryHeight - (unionFrame.origin.y + unionFrame.size.height)
+        
+        return CGRect(x: cgMinX, y: cgMinY, width: unionFrame.size.width, height: unionFrame.size.height)
     }
 
     private func handleTrackpadEvent(action: String, dx: Float?, dy: Float?, button: String?) {
@@ -451,12 +481,35 @@ class NearbyService: NSObject, ObservableObject, ConnectionManagerDelegate, Adve
         
         if action == "move" {
             guard let dx = dx, let dy = dy else { return }
+            
+            let actualLocation = CGEvent(source: nil)?.location ?? .zero
+            
+            queueLock.lock()
             if virtualCursorLocation == nil {
-                virtualCursorLocation = CGEvent(source: nil)?.location ?? .zero
+                virtualCursorLocation = actualLocation
+            } else {
+                // If the virtual cursor location deviates too much from the actual cursor location
+                // (e.g. because of physical mouse movement or system constraints), sync them.
+                let dist = hypot((virtualCursorLocation?.x ?? 0) - actualLocation.x, (virtualCursorLocation?.y ?? 0) - actualLocation.y)
+                if dist > 100 {
+                    virtualCursorLocation = actualLocation
+                }
             }
-            let newLocation = CGPoint(x: (virtualCursorLocation?.x ?? 0) + CGFloat(dx), y: (virtualCursorLocation?.y ?? 0) + CGFloat(dy))
-            virtualCursorLocation = newLocation
-            if let moveEvent = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: newLocation, mouseButton: .left) {
+            
+            let targetX = (virtualCursorLocation?.x ?? 0) + CGFloat(dx)
+            let targetY = (virtualCursorLocation?.y ?? 0) + CGFloat(dy)
+            let targetLocation = CGPoint(x: targetX, y: targetY)
+            
+            // Clamp target location to virtual screen bounds
+            let boundingBox = getScreenBoundingBox()
+            let clampedX = max(boundingBox.minX, min(boundingBox.maxX, targetLocation.x))
+            let clampedY = max(boundingBox.minY, min(boundingBox.maxY, targetLocation.y))
+            let clampedLocation = CGPoint(x: clampedX, y: clampedY)
+            
+            virtualCursorLocation = clampedLocation
+            queueLock.unlock()
+            
+            if let moveEvent = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: clampedLocation, mouseButton: .left) {
                 moveEvent.post(tap: .cghidEventTap)
             }
         } else if action == "click" {
