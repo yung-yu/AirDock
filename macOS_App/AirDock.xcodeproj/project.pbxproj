@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		10612B151F24E08FF93F5FE9 /* NearbyConnections in Frameworks */ = {isa = PBXBuildFile; productRef = 21769DEFFAEFAA2F2D9DA576 /* NearbyConnections */; };
-		18E7DF55203F2FD91765B9A2 /* playstore.png in Resources */ = {isa = PBXBuildFile; fileRef = 8814AFA0B604578B4AC2C794 /* playstore.png */; };
 		2B45A629647512672A9E1EA8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 48D1EBC91BDEEA03565A02B1 /* Assets.xcassets */; };
 		7A0B4B93CC3395AB7FF38B6B /* application.swift in Sources */ = {isa = PBXBuildFile; fileRef = 064E95DF8E3BDC84FA559BD9 /* application.swift */; };
 		95C19018CC049936439F1E3B /* NearbyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F78D77E951FDC97D8EED7FB /* NearbyService.swift */; };
@@ -21,7 +20,6 @@
 		48D1EBC91BDEEA03565A02B1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		6F78D77E951FDC97D8EED7FB /* NearbyService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NearbyService.swift; sourceTree = "<group>"; };
 		83005C388C4BE3818148B98E /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		8814AFA0B604578B4AC2C794 /* playstore.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = playstore.png; sourceTree = "<group>"; };
 		A3D1FB27E80644043270028C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		D0B23DACA4A68EE9A4204E6D /* appstore.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = appstore.png; sourceTree = "<group>"; };
 		DE1E0C7EE53ABFA17564B436 /* AirDock.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AirDock.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -48,7 +46,6 @@
 				83005C388C4BE3818148B98E /* ContentView.swift */,
 				A3D1FB27E80644043270028C /* Info.plist */,
 				6F78D77E951FDC97D8EED7FB /* NearbyService.swift */,
-				8814AFA0B604578B4AC2C794 /* playstore.png */,
 			);
 			path = macOS_App;
 			sourceTree = "<group>";
@@ -130,7 +127,6 @@
 			files = (
 				2B45A629647512672A9E1EA8 /* Assets.xcassets in Resources */,
 				D1899725F5C1581508C16FDD /* appstore.png in Resources */,
-				18E7DF55203F2FD91765B9A2 /* playstore.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

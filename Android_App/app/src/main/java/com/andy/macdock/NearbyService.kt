@@ -396,6 +396,30 @@ class NearbyService(
         }
     }
 
+    fun sendTrackpadEvent(action: String, dx: Float = 0f, dy: Float = 0f, button: String = "left") {
+        val endpointId = connectedEndpointId ?: return
+        try {
+            val json = JSONObject().apply {
+                put("type", "TRACKPAD")
+                put("action", action)
+                if (action == "move") {
+                    put("dx", dx)
+                    put("dy", dy)
+                }
+                if (action == "click") {
+                    put("button", button)
+                }
+            }
+            val bytes = json.toString().toByteArray(Charsets.UTF_8)
+            connectionsClient.sendPayload(endpointId, Payload.fromBytes(bytes))
+            // Log for debugging
+            // Log.d("NearbyService", "Sent TRACKPAD command: $action")
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Log.e("NearbyService", "Failed to send TRACKPAD command", e)
+        }
+    }
+
     fun unpairAll() {
         sharedPrefs.edit()
             .remove("paired_devices")

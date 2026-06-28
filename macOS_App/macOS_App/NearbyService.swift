@@ -13,13 +13,17 @@ struct MacAppInfo: Codable, Identifiable, Hashable {
 }
 
 struct AppPayload: Codable {
-    let type: String // "APP_LIST", "OPEN_APP", "PAIRING_REQUEST", "PAIRING_RESPONSE", "VERIFY_PAIRING", "CHALLENGE", "VERIFY_RESPONSE", "SWITCH_SPACE", "KILL_APP"
-    let apps: [MacAppInfo]?
-    let bundleId: String?
-    let uuid: String?
-    let token: String?
-    let challenge: String?
-    let direction: String?
+    let type: String // "APP_LIST", "OPEN_APP", "PAIRING_REQUEST", "PAIRING_RESPONSE", "VERIFY_PAIRING", "CHALLENGE", "VERIFY_RESPONSE", "SWITCH_SPACE", "KILL_APP", "TRACKPAD"
+    var apps: [MacAppInfo]? = nil
+    var bundleId: String? = nil
+    var uuid: String? = nil
+    var token: String? = nil
+    var challenge: String? = nil
+    var direction: String? = nil
+    var action: String? = nil
+    var dx: Float? = nil
+    var dy: Float? = nil
+    var button: String? = nil
 }
 
 class NearbyService: NSObject, ObservableObject, ConnectionManagerDelegate, AdvertiserDelegate {
@@ -360,6 +364,10 @@ class NearbyService: NSObject, ObservableObject, ConnectionManagerDelegate, Adve
                         }
                     }
                 }
+            case "TRACKPAD":
+                if self.authorizedEndpoints.contains(endpointID), let action = payload.action {
+                    self.handleTrackpadEvent(action: action, dx: payload.dx, dy: payload.dy, button: payload.button)
+                }
             default:
                 break
             }
@@ -395,6 +403,24 @@ class NearbyService: NSObject, ObservableObject, ConnectionManagerDelegate, Adve
             }
         } catch {
             print("❌ 執行 AppleScript 失敗: \(error)")
+        }
+    }
+
+    private func handleTrackpadEvent(action: String, dx: Float?, dy: Float?, button: String?) {
+        let currentLocation = CGEvent(source: nil)?.location ?? .zero
+        
+        if action == "move" {
+            guard let dx = dx, let dy = dy else { return }
+            let newLocation = CGPoint(x: currentLocation.x + CGFloat(dx), y: currentLocation.y + CGFloat(dy))
+            if let moveEvent = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: newLocation, mouseButton: .left) {
+                moveEvent.post(tap: .cghidEventTap)
+            }
+        } else if action == "click" {
+            if let mouseDownEvent = CGEvent(mouseEventSource: nil, mouseType: .leftMouseDown, mouseCursorPosition: currentLocation, mouseButton: .left),
+               let mouseUpEvent = CGEvent(mouseEventSource: nil, mouseType: .leftMouseUp, mouseCursorPosition: currentLocation, mouseButton: .left) {
+                mouseDownEvent.post(tap: .cghidEventTap)
+                mouseUpEvent.post(tap: .cghidEventTap)
+            }
         }
     }
 }

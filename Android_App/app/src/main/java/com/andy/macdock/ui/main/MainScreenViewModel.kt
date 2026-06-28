@@ -72,6 +72,10 @@ class MainScreenViewModel(dataRepository: DataRepository) : ViewModel() {
     nearbyService?.killMacApp(bundleId)
   }
 
+  fun sendTrackpadEvent(action: String, dx: Float = 0f, dy: Float = 0f, button: String = "left") {
+    nearbyService?.sendTrackpadEvent(action, dx, dy, button)
+  }
+
   fun disconnect() {
     nearbyService?.disconnect()
   }

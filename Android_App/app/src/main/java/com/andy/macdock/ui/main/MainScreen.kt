@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.BorderStroke
@@ -1136,18 +1137,27 @@ fun NearbyControllerScreen(modifier: Modifier = Modifier) {
                     )
                 )
                 .pointerInput(Unit) {
-                    var totalDrag = 0f
-                    detectHorizontalDragGestures(
-                        onDragStart = { totalDrag = 0f },
-                        onHorizontalDrag = { change, dragAmount ->
+                    detectTapGestures(
+                        onTap = {
+                            viewModel.sendTrackpadEvent("click")
+                        }
+                    )
+                }
+                .pointerInput(Unit) {
+                    var lastSendTime = 0L
+                    var accumulatedDx = 0f
+                    var accumulatedDy = 0f
+                    detectDragGestures(
+                        onDrag = { change, dragAmount ->
                             change.consume()
-                            totalDrag += dragAmount
-                        },
-                        onDragEnd = {
-                            if (totalDrag > 50) {
-                                viewModel.switchSpace("left")
-                            } else if (totalDrag < -50) {
-                                viewModel.switchSpace("right")
+                            accumulatedDx += dragAmount.x
+                            accumulatedDy += dragAmount.y
+                            val currentTime = android.os.SystemClock.elapsedRealtime()
+                            if (currentTime - lastSendTime >= 16L) {
+                                viewModel.sendTrackpadEvent("move", accumulatedDx, accumulatedDy)
+                                accumulatedDx = 0f
+                                accumulatedDy = 0f
+                                lastSendTime = currentTime
                             }
                         }
                     )
