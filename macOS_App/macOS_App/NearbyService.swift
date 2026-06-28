@@ -445,6 +445,7 @@ class NearbyService: NSObject, ObservableObject, ConnectionManagerDelegate, Adve
 
     private func handleTrackpadEvent(action: String, dx: Float?, dy: Float?, button: String?) {
         let currentLocation = CGEvent(source: nil)?.location ?? .zero
+        print("🖱️ handleTrackpadEvent: \(action), dx: \(dx ?? 0), dy: \(dy ?? 0)")
         
         if action == "move" {
             guard let dx = dx, let dy = dy else { return }

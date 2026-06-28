@@ -1615,29 +1615,67 @@ fun FullScreenGestureArea(
                 )
             }
             .pointerInput(Unit) {
-                var lastSendTime = 0L
-                var accumulatedDx = 0f
-                var accumulatedDy = 0f
-                detectDragGestures(
-                    onDragEnd = {
-                        viewModel.sendTrackpadEvent("stop")
-                    },
-                    onDragCancel = {
-                        viewModel.sendTrackpadEvent("stop")
-                    },
-                    onDrag = { change, dragAmount ->
-                        change.consume()
-                        accumulatedDx += dragAmount.x
-                        accumulatedDy += dragAmount.y
-                        val currentTime = android.os.SystemClock.elapsedRealtime()
-                        if (currentTime - lastSendTime >= 16L) {
-                            viewModel.sendTrackpadEvent("move", accumulatedDx, accumulatedDy)
-                            accumulatedDx = 0f
-                            accumulatedDy = 0f
-                            lastSendTime = currentTime
+                awaitPointerEventScope {
+                    var lastSendTime = 0L
+                    var accumulatedDx = 0f
+                    var accumulatedDy = 0f
+                    var isSwiped = false
+                    var twoFingerAccumulatedX = 0f
+                    
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        val changes = event.changes
+                        
+                        if (changes.size == 1) {
+                            // Single finger drag (mouse move)
+                            val change = changes[0]
+                            if (change.pressed) {
+                                val dragAmount = change.position - change.previousPosition
+                                accumulatedDx += dragAmount.x
+                                accumulatedDy += dragAmount.y
+                                val currentTime = android.os.SystemClock.elapsedRealtime()
+                                if (currentTime - lastSendTime >= 16L) {
+                                    viewModel.sendTrackpadEvent("move", accumulatedDx, accumulatedDy)
+                                    accumulatedDx = 0f
+                                    accumulatedDy = 0f
+                                    lastSendTime = currentTime
+                                }
+                                change.consume()
+                            }
+                        } else if (changes.size == 2) {
+                            // Two fingers swipe (switch workspace)
+                            val dragAmountX = changes.map { it.position.x - it.previousPosition.x }.average().toFloat()
+                            twoFingerAccumulatedX += dragAmountX
+                            
+                            if (!isSwiped) {
+                                val threshold = 120f // pixels
+                                if (twoFingerAccumulatedX > threshold) {
+                                    viewModel.switchSpace("left")
+                                    isSwiped = true
+                                } else if (twoFingerAccumulatedX < -threshold) {
+                                    viewModel.switchSpace("right")
+                                    isSwiped = true
+                                }
+                            }
+                            // Consume both pointer changes to avoid triggering other touch logic
+                            changes.forEach { it.consume() }
+                        }
+                        
+                        // Check if all pointers are lifted to trigger stop/release states
+                        val anyPressed = changes.any { it.pressed }
+                        if (!anyPressed || changes.size < 2) {
+                            if (changes.size < 2) {
+                                // Reset two-finger states
+                                isSwiped = false
+                                twoFingerAccumulatedX = 0f
+                            }
+                            if (!anyPressed) {
+                                // All fingers lifted, send stop event
+                                viewModel.sendTrackpadEvent("stop")
+                            }
                         }
                     }
-                )
+                }
             }
     ) {
         Column(
@@ -1682,29 +1720,67 @@ fun FullScreenNonSplitView(
                 )
             }
             .pointerInput(Unit) {
-                var lastSendTime = 0L
-                var accumulatedDx = 0f
-                var accumulatedDy = 0f
-                detectDragGestures(
-                    onDragEnd = {
-                        viewModel.sendTrackpadEvent("stop")
-                    },
-                    onDragCancel = {
-                        viewModel.sendTrackpadEvent("stop")
-                    },
-                    onDrag = { change, dragAmount ->
-                        change.consume()
-                        accumulatedDx += dragAmount.x
-                        accumulatedDy += dragAmount.y
-                        val currentTime = android.os.SystemClock.elapsedRealtime()
-                        if (currentTime - lastSendTime >= 16L) {
-                            viewModel.sendTrackpadEvent("move", accumulatedDx, accumulatedDy)
-                            accumulatedDx = 0f
-                            accumulatedDy = 0f
-                            lastSendTime = currentTime
+                awaitPointerEventScope {
+                    var lastSendTime = 0L
+                    var accumulatedDx = 0f
+                    var accumulatedDy = 0f
+                    var isSwiped = false
+                    var twoFingerAccumulatedX = 0f
+                    
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        val changes = event.changes
+                        
+                        if (changes.size == 1) {
+                            // Single finger drag (mouse move)
+                            val change = changes[0]
+                            if (change.pressed) {
+                                val dragAmount = change.position - change.previousPosition
+                                accumulatedDx += dragAmount.x
+                                accumulatedDy += dragAmount.y
+                                val currentTime = android.os.SystemClock.elapsedRealtime()
+                                if (currentTime - lastSendTime >= 16L) {
+                                    viewModel.sendTrackpadEvent("move", accumulatedDx, accumulatedDy)
+                                    accumulatedDx = 0f
+                                    accumulatedDy = 0f
+                                    lastSendTime = currentTime
+                                }
+                                change.consume()
+                            }
+                        } else if (changes.size == 2) {
+                            // Two fingers swipe (switch workspace)
+                            val dragAmountX = changes.map { it.position.x - it.previousPosition.x }.average().toFloat()
+                            twoFingerAccumulatedX += dragAmountX
+                            
+                            if (!isSwiped) {
+                                val threshold = 120f // pixels
+                                if (twoFingerAccumulatedX > threshold) {
+                                    viewModel.switchSpace("left")
+                                    isSwiped = true
+                                } else if (twoFingerAccumulatedX < -threshold) {
+                                    viewModel.switchSpace("right")
+                                    isSwiped = true
+                                }
+                            }
+                            // Consume both pointer changes to avoid triggering other touch logic
+                            changes.forEach { it.consume() }
+                        }
+                        
+                        // Check if all pointers are lifted to trigger stop/release states
+                        val anyPressed = changes.any { it.pressed }
+                        if (!anyPressed || changes.size < 2) {
+                            if (changes.size < 2) {
+                                // Reset two-finger states
+                                isSwiped = false
+                                twoFingerAccumulatedX = 0f
+                            }
+                            if (!anyPressed) {
+                                // All fingers lifted, send stop event
+                                viewModel.sendTrackpadEvent("stop")
+                            }
                         }
                     }
-                )
+                }
             }
             .padding(20.dp)
     ) {
