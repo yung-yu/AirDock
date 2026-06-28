@@ -1621,12 +1621,18 @@ fun FullScreenGestureArea(
                     var accumulatedDy = 0f
                     var isSwiped = false
                     var twoFingerAccumulatedX = 0f
+                    var twoFingerMode = false
                     
                     while (true) {
                         val event = awaitPointerEvent()
                         val changes = event.changes
+                        val anyPressed = changes.any { it.pressed }
                         
-                        if (changes.size == 1) {
+                        if (changes.size == 2) {
+                            twoFingerMode = true
+                        }
+                        
+                        if (changes.size == 1 && !twoFingerMode) {
                             // Single finger drag (mouse move)
                             val change = changes[0]
                             if (change.pressed) {
@@ -1661,18 +1667,15 @@ fun FullScreenGestureArea(
                             changes.forEach { it.consume() }
                         }
                         
-                        // Check if all pointers are lifted to trigger stop/release states
-                        val anyPressed = changes.any { it.pressed }
-                        if (!anyPressed || changes.size < 2) {
-                            if (changes.size < 2) {
-                                // Reset two-finger states
-                                isSwiped = false
-                                twoFingerAccumulatedX = 0f
-                            }
-                            if (!anyPressed) {
-                                // All fingers lifted, send stop event
-                                viewModel.sendTrackpadEvent("stop")
-                            }
+                        // Clean up states when fingers are lifted
+                        if (!anyPressed) {
+                            twoFingerMode = false
+                            isSwiped = false
+                            twoFingerAccumulatedX = 0f
+                            viewModel.sendTrackpadEvent("stop")
+                        } else if (changes.size < 2 && !twoFingerMode) {
+                            isSwiped = false
+                            twoFingerAccumulatedX = 0f
                         }
                     }
                 }
@@ -1726,12 +1729,18 @@ fun FullScreenNonSplitView(
                     var accumulatedDy = 0f
                     var isSwiped = false
                     var twoFingerAccumulatedX = 0f
+                    var twoFingerMode = false
                     
                     while (true) {
                         val event = awaitPointerEvent()
                         val changes = event.changes
+                        val anyPressed = changes.any { it.pressed }
                         
-                        if (changes.size == 1) {
+                        if (changes.size == 2) {
+                            twoFingerMode = true
+                        }
+                        
+                        if (changes.size == 1 && !twoFingerMode) {
                             // Single finger drag (mouse move)
                             val change = changes[0]
                             if (change.pressed) {
@@ -1766,18 +1775,15 @@ fun FullScreenNonSplitView(
                             changes.forEach { it.consume() }
                         }
                         
-                        // Check if all pointers are lifted to trigger stop/release states
-                        val anyPressed = changes.any { it.pressed }
-                        if (!anyPressed || changes.size < 2) {
-                            if (changes.size < 2) {
-                                // Reset two-finger states
-                                isSwiped = false
-                                twoFingerAccumulatedX = 0f
-                            }
-                            if (!anyPressed) {
-                                // All fingers lifted, send stop event
-                                viewModel.sendTrackpadEvent("stop")
-                            }
+                        // Clean up states when fingers are lifted
+                        if (!anyPressed) {
+                            twoFingerMode = false
+                            isSwiped = false
+                            twoFingerAccumulatedX = 0f
+                            viewModel.sendTrackpadEvent("stop")
+                        } else if (changes.size < 2 && !twoFingerMode) {
+                            isSwiped = false
+                            twoFingerAccumulatedX = 0f
                         }
                     }
                 }
